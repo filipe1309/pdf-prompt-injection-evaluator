@@ -1,6 +1,7 @@
 import { renderPdfFromBytes, getPageCount, goToPage } from './pdf-viewer.js';
 
 const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
 const { open, save } = window.__TAURI__.dialog;
 
 let translations = {};
@@ -82,12 +83,28 @@ dropZone.addEventListener('dragover', (e) => {
     dropZone.classList.add('dragover');
 });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', async (e) => {
+dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
-    // Tauri drag-drop provides file paths differently
-    // For now, use the dialog approach
-    await selectFile();
+});
+
+// Tauri v2 drag-and-drop: listen for file drop events from the OS
+listen('tauri://drag-drop', async (event) => {
+    const paths = event.payload.paths;
+    if (paths && paths.length > 0) {
+        const pdfPath = paths.find(p => p.toLowerCase().endsWith('.pdf'));
+        if (pdfPath) {
+            await analyzePdfFile(pdfPath);
+        }
+    }
+});
+
+listen('tauri://drag-over', () => {
+    dropZone.classList.add('dragover');
+});
+
+listen('tauri://drag-leave', () => {
+    dropZone.classList.remove('dragover');
 });
 
 async function analyzePdfFile(path) {
