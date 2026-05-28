@@ -282,7 +282,8 @@ function updateQueueUI() {
                         badge = '<span class="queue-badge badge-preliminary">' + t('preliminary_short') + '</span>';
                     }
                 } else {
-                    badge = '<span class="queue-badge badge-unsafe">' + f.result.findings.length + ' ' + t('findings_count') + '</span>';
+                    const count = f.result.findings.length;
+                    badge = '<span class="queue-badge badge-unsafe">' + count + ' ' + t(count === 1 ? 'finding_single' : 'findings_count') + '</span>';
                 }
             } else if (f.status === 'processing') {
                 badge = '<span class="queue-badge badge-processing">' + t('processing_short') + '</span>';
