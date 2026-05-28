@@ -17,6 +17,10 @@ pub struct PdfContent {
     pub annotations: Vec<AnnotationInfo>,
     pub has_javascript: bool,
     pub has_white_text: bool,
+    pub has_microscopic_font: bool,
+    pub has_text_outside_bounds: bool,
+    pub has_acroform_fields: bool,
+    pub form_field_values: Vec<String>,
 }
 
 pub struct AnnotationInfo {
@@ -36,12 +40,19 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         pages.insert(page_num, text);
     }
 
+    let (has_white_text, has_microscopic_font, has_text_outside_bounds) = analyze_content_streams(&doc);
+    let (has_acroform_fields, form_field_values) = extract_acroform_fields(&doc);
+
     Ok(PdfContent {
         pages,
         metadata: extract_metadata(&doc),
         annotations: extract_annotations(&doc),
         has_javascript: check_javascript(&doc),
-        has_white_text: check_white_text(&doc),
+        has_white_text,
+        has_microscopic_font,
+        has_text_outside_bounds,
+        has_acroform_fields,
+        form_field_values,
     })
 }
 
@@ -125,10 +136,32 @@ fn check_javascript(doc: &Document) -> bool {
     doc.objects.values().any(object_contains_javascript)
 }
 
-fn check_white_text(doc: &Document) -> bool {
+fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
     use lopdf::content::Content;
 
-    for (page_num, page_id) in doc.get_pages() {
+    let mut has_white_text = false;
+    let mut has_microscopic_font = false;
+    let mut has_text_outside_bounds = false;
+
+    for (_page_num, page_id) in doc.get_pages() {
+        // Get page MediaBox for bounds checking
+        let media_box = doc
+            .get_dictionary(page_id)
+            .ok()
+            .and_then(|d| d.get(b"MediaBox").ok())
+            .and_then(|obj| doc.dereference(obj).ok())
+            .and_then(|(_, obj)| obj.as_array().ok().cloned())
+            .unwrap_or_default();
+
+        let (page_width, page_height) = if media_box.len() == 4 {
+            (
+                media_box[2].as_float().unwrap_or(595.0f32),
+                media_box[3].as_float().unwrap_or(842.0f32),
+            )
+        } else {
+            (595.0f32, 842.0f32) // A4 default
+        };
+
         let Ok(content_data) = doc.get_page_content(page_id) else {
             continue;
         };
@@ -137,11 +170,13 @@ fn check_white_text(doc: &Document) -> bool {
         };
 
         let mut current_color_is_white = false;
-        let mut has_text_while_white = false;
+        let mut current_font_size: f32 = 12.0;
+        let mut current_x: f32 = 0.0;
+        let mut current_y: f32 = 0.0;
 
         for op in &content.operations {
             match op.operator.as_str() {
-                // Non-stroking color (fill) - RGB
+                // Non-stroking color RGB
                 "rg" => {
                     if op.operands.len() == 3 {
                         let r = op.operands[0].as_float().unwrap_or(0.0);
@@ -157,22 +192,109 @@ fn check_white_text(doc: &Document) -> bool {
                         current_color_is_white = gray > 0.99;
                     }
                 }
+                // Font size (Tf operator: /FontName size Tf)
+                "Tf" => {
+                    if op.operands.len() >= 2 {
+                        current_font_size = op.operands[1].as_float().unwrap_or(12.0);
+                    }
+                }
+                // Text position (Td, TD)
+                "Td" | "TD" => {
+                    if op.operands.len() >= 2 {
+                        current_x += op.operands[0].as_float().unwrap_or(0.0);
+                        current_y += op.operands[1].as_float().unwrap_or(0.0);
+                    }
+                }
+                // Text matrix (Tm)
+                "Tm" => {
+                    if op.operands.len() >= 6 {
+                        current_x = op.operands[4].as_float().unwrap_or(0.0);
+                        current_y = op.operands[5].as_float().unwrap_or(0.0);
+                    }
+                }
+                // Begin text
+                "BT" => {
+                    current_x = 0.0;
+                    current_y = 0.0;
+                }
                 // Text operators
                 "Tj" | "TJ" | "'" | "\"" => {
                     if current_color_is_white {
-                        has_text_while_white = true;
+                        has_white_text = true;
+                    }
+                    if current_font_size < 2.0 && current_font_size > 0.0 {
+                        has_microscopic_font = true;
+                    }
+                    if current_x < -10.0 || current_x > page_width + 10.0
+                        || current_y < -10.0 || current_y > page_height + 10.0
+                    {
+                        has_text_outside_bounds = true;
                     }
                 }
                 _ => {}
             }
         }
+    }
 
-        if has_text_while_white {
-            let _ = page_num; // suppress unused warning
-            return true;
+    (has_white_text, has_microscopic_font, has_text_outside_bounds)
+}
+
+fn extract_acroform_fields(doc: &Document) -> (bool, Vec<String>) {
+    let mut values = Vec::new();
+
+    // Check for AcroForm in the catalog
+    let catalog = match doc.trailer.get(b"Root") {
+        Ok(root) => match doc.dereference(root) {
+            Ok((_, obj)) => match obj.as_dict() {
+                Ok(dict) => dict.clone(),
+                Err(_) => return (false, values),
+            },
+            Err(_) => return (false, values),
+        },
+        Err(_) => return (false, values),
+    };
+
+    let acroform = match catalog.get(b"AcroForm") {
+        Ok(obj) => match doc.dereference(obj) {
+            Ok((_, obj)) => match obj.as_dict() {
+                Ok(dict) => dict.clone(),
+                Err(_) => return (false, values),
+            },
+            Err(_) => return (false, values),
+        },
+        Err(_) => return (false, values),
+    };
+
+    let fields = match acroform.get(b"Fields") {
+        Ok(obj) => match doc.dereference(obj) {
+            Ok((_, obj)) => match obj.as_array() {
+                Ok(arr) => arr.clone(),
+                Err(_) => return (false, values),
+            },
+            Err(_) => return (false, values),
+        },
+        Err(_) => return (false, values),
+    };
+
+    for field_ref in &fields {
+        let field_dict = match doc.dereference(field_ref) {
+            Ok((_, obj)) => match obj.as_dict() {
+                Ok(dict) => dict,
+                Err(_) => continue,
+            },
+            Err(_) => continue,
+        };
+
+        // Extract field value /V
+        if let Ok(v) = field_dict.get(b"V") {
+            if let Ok(text) = v.as_string() {
+                values.push(text.into_owned());
+            }
         }
     }
-    false
+
+    let has_fields = !fields.is_empty();
+    (has_fields, values)
 }
 
 fn object_contains_javascript(object: &Object) -> bool {

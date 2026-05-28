@@ -5,26 +5,70 @@ use regex::Regex;
 pub fn detect(content: &PdfContent) -> Vec<Finding> {
     let mut findings = Vec::new();
 
-    // Determine if instruction patterns exist in pages
     let pt_br_regex = instruction_patterns_pt_br();
     let en_regex = instruction_patterns_en();
+
+    // Determine primary detection type based on PDF structure signals
+    let primary_type = if content.has_white_text {
+        DetectionType::WhiteText
+    } else if content.has_microscopic_font {
+        DetectionType::MicroscopicFont
+    } else if content.has_text_outside_bounds {
+        DetectionType::TextOutsideBounds
+    } else {
+        DetectionType::InstructionPattern
+    };
 
     for (page, text) in &content.pages {
         detect_zero_width_characters(*page, text, &mut findings);
         detect_unicode_tricks(*page, text, &mut findings);
 
-        // If white text detected, tag instruction patterns as WhiteText vector
-        let detection_type = if content.has_white_text {
-            DetectionType::WhiteText
+        // Tag instruction patterns with the detected vector type
+        detect_instruction_patterns(*page, text, &pt_br_regex, Severity::Warning, primary_type.clone(), "Suspicious instruction pattern detected in page text", &mut findings);
+
+        // English instructions in a Portuguese document = foreign language vector
+        let en_type = if primary_type == DetectionType::InstructionPattern {
+            DetectionType::ForeignLanguageInstruction
         } else {
-            DetectionType::InstructionPattern
+            primary_type.clone()
         };
+        detect_instruction_patterns(*page, text, &en_regex, Severity::Warning, en_type, "Suspicious instruction pattern detected in page text", &mut findings);
 
-        detect_instruction_patterns(*page, text, &pt_br_regex, Severity::Warning, detection_type.clone(), "Suspicious instruction pattern detected in page text", &mut findings);
-        detect_instruction_patterns(*page, text, &en_regex, Severity::Warning, detection_type.clone(), "Suspicious instruction pattern detected in page text", &mut findings);
-
-        // Detect token flooding (high repetition of legal terms)
         detect_token_flooding(*page, text, &mut findings);
+    }
+
+    // Structural signals as standalone findings
+    if content.has_white_text && findings.iter().all(|f| f.detection_type != DetectionType::WhiteText) {
+        findings.push(Finding {
+            page: 0,
+            severity: Severity::Warning,
+            detection_type: DetectionType::WhiteText,
+            description: "White/invisible text detected in document content stream".to_string(),
+            excerpt: "Color set to white (1,1,1) before text rendering".to_string(),
+            char_offset: None,
+        });
+    }
+
+    if content.has_microscopic_font && findings.iter().all(|f| f.detection_type != DetectionType::MicroscopicFont) {
+        findings.push(Finding {
+            page: 0,
+            severity: Severity::Warning,
+            detection_type: DetectionType::MicroscopicFont,
+            description: "Microscopic font size (<2pt) detected in document".to_string(),
+            excerpt: "Text rendered with font size below readable threshold".to_string(),
+            char_offset: None,
+        });
+    }
+
+    if content.has_text_outside_bounds && findings.iter().all(|f| f.detection_type != DetectionType::TextOutsideBounds) {
+        findings.push(Finding {
+            page: 0,
+            severity: Severity::Warning,
+            detection_type: DetectionType::TextOutsideBounds,
+            description: "Text positioned outside visible page boundaries".to_string(),
+            excerpt: "Text coordinates exceed page MediaBox dimensions".to_string(),
+            char_offset: None,
+        });
     }
 
     if content.has_javascript {
@@ -36,6 +80,32 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
             excerpt: "Embedded JavaScript detected".to_string(),
             char_offset: None,
         });
+    }
+
+    if content.has_acroform_fields {
+        findings.push(Finding {
+            page: 0,
+            severity: Severity::Warning,
+            detection_type: DetectionType::HiddenFormField,
+            description: "Hidden form fields (AcroForm) detected in document".to_string(),
+            excerpt: "AcroForm fields present — unusual in judicial documents".to_string(),
+            char_offset: None,
+        });
+
+        // Check form field values for instruction patterns
+        let metadata_regex = combined_instruction_patterns();
+        for value in &content.form_field_values {
+            for matched in metadata_regex.find_iter(value) {
+                findings.push(Finding {
+                    page: 0,
+                    severity: Severity::Critical,
+                    detection_type: DetectionType::HiddenFormField,
+                    description: "Instruction pattern found in hidden form field value".to_string(),
+                    excerpt: extract_context(value, matched.start(), 30),
+                    char_offset: Some(matched.start()),
+                });
+            }
+        }
     }
 
     let metadata_regex = combined_instruction_patterns();
@@ -198,6 +268,10 @@ mod tests {
             annotations: Vec::new(),
             has_javascript: false,
             has_white_text: false,
+            has_microscopic_font: false,
+            has_text_outside_bounds: false,
+            has_acroform_fields: false,
+            form_field_values: Vec::new(),
         }
     }
 
@@ -239,7 +313,8 @@ mod tests {
 
         assert!(findings
             .iter()
-            .any(|finding| finding.detection_type == DetectionType::InstructionPattern));
+            .any(|finding| finding.detection_type == DetectionType::InstructionPattern
+                || finding.detection_type == DetectionType::ForeignLanguageInstruction));
     }
 
     #[test]
