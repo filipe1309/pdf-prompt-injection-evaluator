@@ -121,13 +121,13 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
         // Check form field values for instruction patterns
         let metadata_regex = combined_instruction_patterns();
         for value in &content.form_field_values {
-            for matched in metadata_regex.find_iter(value) {
+            if let Some(matched) = metadata_regex.find(value) {
                 findings.push(Finding {
                     page: 0,
                     severity: Severity::Critical,
                     detection_type: DetectionType::HiddenFormField,
                     description: "Instruction pattern found in hidden form field value".to_string(),
-                    excerpt: extract_context(value, matched.start(), 30),
+                    excerpt: extract_context(value, matched.start(), 80),
                     char_offset: Some(matched.start()),
                 });
             }

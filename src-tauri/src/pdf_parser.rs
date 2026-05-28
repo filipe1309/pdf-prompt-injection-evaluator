@@ -332,6 +332,22 @@ fn extract_acroform_fields(doc: &Document) -> (bool, Vec<String>) {
             if let Ok(text) = v.as_string() {
                 values.push(text.into_owned());
             }
+            // For signature fields, /V is a reference to a Sig dictionary
+            // Extract /Reason, /Location, /ContactInfo which can hold injections
+            if let Ok((_, deref_v)) = doc.dereference(v) {
+                if let Ok(sig_dict) = deref_v.as_dict() {
+                    for key in [b"Reason".as_slice(), b"Location", b"ContactInfo"] {
+                        if let Ok(val) = sig_dict.get(key) {
+                            if let Ok(text) = val.as_string() {
+                                let s = text.into_owned();
+                                if !s.trim().is_empty() {
+                                    values.push(s);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
