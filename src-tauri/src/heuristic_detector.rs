@@ -130,15 +130,31 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
 }
 
 fn detect_zero_width_characters(page: u32, text: &str, findings: &mut Vec<Finding>) {
+    let zero_width_chars: Vec<char> = vec!['\u{200B}', '\u{200C}', '\u{200D}', '\u{FEFF}', '\u{00AD}', '\u{2060}'];
+
     let zero_width_positions: Vec<usize> = text
         .char_indices()
-        .filter(|(_, ch)| matches!(ch, '\u{200B}' | '\u{200C}' | '\u{200D}' | '\u{FEFF}' | '\u{00AD}' | '\u{2060}'))
+        .filter(|(_, ch)| zero_width_chars.contains(ch))
         .map(|(pos, _)| pos)
         .collect();
 
     if !zero_width_positions.is_empty() {
         let first_pos = zero_width_positions[0];
         let count = zero_width_positions.len();
+
+        // Extract text adjacent to zero-width chars (the "hidden" content)
+        // Show the text with zero-width chars stripped to reveal what's being smuggled
+        let hidden_text: String = text
+            .chars()
+            .filter(|ch| !zero_width_chars.contains(ch))
+            .collect();
+        // Show a window around the first occurrence
+        let clean_excerpt = if hidden_text.len() > 80 {
+            format!("{}...", &hidden_text[..80])
+        } else {
+            hidden_text
+        };
+
         findings.push(Finding {
             page,
             severity: Severity::Critical,
@@ -147,7 +163,7 @@ fn detect_zero_width_characters(page: u32, text: &str, findings: &mut Vec<Findin
                 "Zero-width or invisible characters detected in page text ({} occurrences)",
                 count
             ),
-            excerpt: extract_context(text, first_pos, 30),
+            excerpt: format!("Hidden content: \"{}\"", clean_excerpt.trim()),
             char_offset: Some(first_pos),
         });
     }
