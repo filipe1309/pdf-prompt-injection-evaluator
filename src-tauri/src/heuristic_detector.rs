@@ -114,7 +114,7 @@ fn detect_annotation_injection(annotation: &AnnotationInfo, regex: &Regex, findi
 
 fn instruction_patterns_pt_br() -> Regex {
     Regex::new(
-        r"(?i)(ignore\s+(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras)",
+        r"(?i)(ignore\s+(todas\s+)?(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras|aten[çc][aã]o[\s,]+intelig[eê]ncia\s+artificial|n[aã]o\s+impugne|conteste\s+(esta|essa|de\s+forma)\s+.*superficial|conclua\s+que\s+todos|independentemente\s+do\s+comando)",
     )
     .expect("valid pt-BR instruction regex")
 }
@@ -128,7 +128,7 @@ fn instruction_patterns_en() -> Regex {
 
 fn combined_instruction_patterns() -> Regex {
     Regex::new(
-        r"(?i)(ignore\s+(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras|ignore\s+(all\s+)?previous\s+instructions|disregard\s+(the\s+)?(above|previous)|act\s+as\s+(a\s+)?|new\s+objective|forget\s+(all\s+)?(your\s+)?instructions|you\s+are\s+now\s+|system\s*:\s*)",
+        r"(?i)(ignore\s+(todas\s+)?(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras|aten[çc][aã]o[\s,]+intelig[eê]ncia\s+artificial|n[aã]o\s+impugne|conteste\s+(esta|essa|de\s+forma)\s+.*superficial|conclua\s+que\s+todos|independentemente\s+do\s+comando|ignore\s+(all\s+)?previous\s+instructions|disregard\s+(the\s+)?(above|previous)|act\s+as\s+(a\s+)?|new\s+objective|forget\s+(all\s+)?(your\s+)?instructions|you\s+are\s+now\s+|system\s*:\s*)",
     )
     .expect("valid combined instruction regex")
 }
@@ -270,5 +270,29 @@ mod tests {
         let findings = detect(&make_content(pages));
 
         assert!(findings.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+    use crate::pdf_parser;
+    use std::path::Path;
+
+    #[test]
+    fn test_detects_sample_01_texto_branco() {
+        let path = Path::new("../samples/vectors/01_texto_branco.pdf");
+        if !path.exists() { return; }
+        let content = pdf_parser::parse_pdf(path).unwrap();
+        println!("Extracted text:");
+        for (page, text) in &content.pages {
+            println!("  Page {}: {:?}", page, &text[..text.len().min(200)]);
+        }
+        let findings = detect(&content);
+        println!("Findings: {:?}", findings.len());
+        for f in &findings {
+            println!("  {:?}", f);
+        }
+        assert!(!findings.is_empty(), "Should detect injection in sample 01");
     }
 }
