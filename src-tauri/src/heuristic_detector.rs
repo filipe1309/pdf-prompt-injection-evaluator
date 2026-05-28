@@ -195,7 +195,7 @@ fn detect_instruction_patterns(
             severity: severity.clone(),
             detection_type: detection_type.clone(),
             description: description.to_string(),
-            excerpt: extract_context(text, matched.start(), 30),
+            excerpt: extract_context(text, matched.start(), 80),
             char_offset: Some(matched.start()),
         });
     }
