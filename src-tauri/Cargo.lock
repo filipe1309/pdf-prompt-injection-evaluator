@@ -2616,6 +2616,7 @@ name = "pdf-prompt-injection-evaluator"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dirs",
  "genpdf",
  "hex",
  "lopdf 0.34.0",
