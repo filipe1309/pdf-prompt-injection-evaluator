@@ -38,7 +38,9 @@ make install-deps
 | `make help` | Show all available targets |
 | `make dev` | Run the app in development mode |
 | `make build` | Build the Rust backend (debug) |
-| `make release` | Build production release bundle (.exe / .app) |
+| `make release` | Build production release for current platform |
+| `make release-mac` | Build macOS bundle (.app + .dmg) for Apple Silicon |
+| `make release-win` | Build Windows bundle (.exe / .msi) |
 | `make test` | Run all unit tests |
 | `make test-verbose` | Run tests with output |
 | `make lint` | Run clippy linter |

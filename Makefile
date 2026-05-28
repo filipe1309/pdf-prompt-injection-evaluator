@@ -15,8 +15,14 @@ dev: ## Run the app in development mode
 build: ## Build the Rust backend (debug)
 	cd src-tauri && cargo build
 
-release: ## Build production release bundle (.exe / .app)
+release: ## Build production release bundle for current platform
 	cargo tauri build
+
+release-mac: ## Build macOS bundle (.app + .dmg) for Apple Silicon
+	cargo tauri build --target aarch64-apple-darwin
+
+release-win: ## Build Windows bundle (.exe / .msi)
+	cargo tauri build --target x86_64-pc-windows-msvc
 
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
