@@ -595,6 +595,7 @@ deepAnalysisBtn.addEventListener('click', async () => {
     if (!currentResult) return;
 
     showLoading(true);
+    document.getElementById('loading-text').textContent = t('deep_analysis') + '...';
     try {
         let textForLlm = currentResult.extracted_text || '';
         if (currentResult.findings.length > 0) {
