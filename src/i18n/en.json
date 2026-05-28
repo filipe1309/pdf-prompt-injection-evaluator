@@ -36,6 +36,7 @@
     "queue_title": "Analysis Queue",
     "findings_count": "findings",
     "safe_short": "safe",
+    "preliminary_short": "preliminary",
     "unsafe_short": "unsafe",
     "pending_short": "pending",
     "processing_short": "analyzing",

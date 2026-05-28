@@ -36,6 +36,7 @@
     "queue_title": "Fila de Análise",
     "findings_count": "achados",
     "safe_short": "seguros",
+    "preliminary_short": "preliminar",
     "unsafe_short": "inseguros",
     "pending_short": "pendentes",
     "processing_short": "analisando",

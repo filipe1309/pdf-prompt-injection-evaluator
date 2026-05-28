@@ -228,7 +228,8 @@ function updateQueueUI() {
     if (!container) return;
 
     const doneCount = fileQueue.filter(f => f.status === 'done').length;
-    const safeCount = fileQueue.filter(f => f.status === 'done' && f.result.verdict === 'Safe').length;
+    const confirmedSafeCount = fileQueue.filter(f => f.status === 'done' && f.result.verdict === 'Safe' && f.llmResult).length;
+    const preliminaryCount = fileQueue.filter(f => f.status === 'done' && f.result.verdict === 'Safe' && !f.llmResult).length;
     const unsafeCount = fileQueue.filter(f => f.status === 'done' && f.result.verdict !== 'Safe').length;
     const pendingCount = fileQueue.filter(f => f.status === 'pending' || f.status === 'processing').length;
     const total = fileQueue.length;
@@ -238,7 +239,8 @@ function updateQueueUI() {
     // Summary stats
     const statsHtml =
         '<div class="queue-stats">' +
-            (safeCount > 0 ? '<span class="queue-stat queue-stat-safe">' + ICON.shieldCheck + ' ' + safeCount + ' ' + t('safe_short') + '</span>' : '') +
+            (confirmedSafeCount > 0 ? '<span class="queue-stat queue-stat-safe">' + ICON.shieldCheck + ' ' + confirmedSafeCount + ' ' + t('safe_short') + '</span>' : '') +
+            (preliminaryCount > 0 ? '<span class="queue-stat queue-stat-preliminary">' + ICON.shieldCheck + ' ' + preliminaryCount + ' ' + t('preliminary_short') + '</span>' : '') +
             (unsafeCount > 0 ? '<span class="queue-stat queue-stat-unsafe">' + ICON.shieldAlert + ' ' + unsafeCount + ' ' + t('unsafe_short') + '</span>' : '') +
             (pendingCount > 0 ? '<span class="queue-stat queue-stat-pending">' + ICON.clock + ' ' + pendingCount + ' ' + t('pending_short') + '</span>' : '') +
         '</div>';
@@ -274,7 +276,11 @@ function updateQueueUI() {
             let badge = '';
             if (f.status === 'done') {
                 if (f.result.verdict === 'Safe') {
-                    badge = '<span class="queue-badge badge-safe">' + t('safe_short') + '</span>';
+                    if (f.llmResult) {
+                        badge = '<span class="queue-badge badge-safe">' + t('safe_short') + '</span>';
+                    } else {
+                        badge = '<span class="queue-badge badge-preliminary">' + t('preliminary_short') + '</span>';
+                    }
                 } else {
                     badge = '<span class="queue-badge badge-unsafe">' + f.result.findings.length + ' ' + t('findings_count') + '</span>';
                 }
