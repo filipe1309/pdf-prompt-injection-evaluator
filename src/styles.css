@@ -1015,6 +1015,10 @@ header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
     border-left-color: var(--accent-green);
 }
 
+.queue-item.queue-preliminary {
+    border-left-color: #ffc107;
+}
+
 .queue-item.queue-unsafe {
     border-left-color: var(--accent);
 }

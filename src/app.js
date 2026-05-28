@@ -264,7 +264,8 @@ function updateQueueUI() {
                 : f.status === 'processing' ? ICON.loader
                 : f.status === 'error' ? ICON.xCircle : ICON.clock;
 
-            const verdictClass = f.status === 'done' ? (f.result.verdict === 'Safe' ? 'queue-safe' : 'queue-unsafe')
+            const verdictClass = f.status === 'done'
+                ? (f.result.verdict === 'Safe' ? (f.llmResult ? 'queue-safe' : 'queue-preliminary') : 'queue-unsafe')
                 : f.status === 'processing' ? 'queue-processing' : '';
 
             const clickable = f.status === 'done';
