@@ -9,6 +9,7 @@
     "core:default",
     "core:app:default",
     "dialog:default",
-    "fs:default"
+    "fs:default",
+    "fs:allow-stat"
   ]
 }
