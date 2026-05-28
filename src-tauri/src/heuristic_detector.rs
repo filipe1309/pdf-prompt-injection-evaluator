@@ -154,7 +154,8 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
 
     // Check /ActualText values for injection patterns
     for value in &content.actual_text_values {
-        for matched in metadata_regex.find_iter(value) {
+        let first_match = metadata_regex.find(value);
+        if let Some(matched) = first_match {
             findings.push(Finding {
                 page: 0,
                 severity: Severity::Critical,
