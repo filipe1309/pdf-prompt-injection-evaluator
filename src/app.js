@@ -614,14 +614,23 @@ function displayLlmResult() {
     const existing = document.getElementById('llm-result');
     if (existing) existing.remove();
 
+    const isInjection = currentLlmResult.classification === 'injection';
+    const classLabel = isInjection ? t('llm_class_injection') : t('llm_class_safe');
+    const borderColor = isInjection ? 'var(--accent)' : 'var(--accent-green)';
+    const badgeClass = isInjection ? 'badge-unsafe' : 'badge-safe';
+
     const el = document.createElement('div');
     el.id = 'llm-result';
-    el.className = 'finding-item';
-    el.style.borderLeftColor = currentLlmResult.classification === 'injection' ? 'var(--accent)' : 'var(--accent-green)';
-    var classLabel = currentLlmResult.classification === 'injection' ? t('llm_class_injection') : t('llm_class_safe');
+    el.className = 'llm-result-section';
     el.innerHTML =
-        '<div class="finding-header">' + ICON.bot + ' ' + t('llm_analysis_header') + ': ' + escapeHtml(classLabel) + ' (' + currentLlmResult.confidence + '% ' + t('confidence') + ')</div>' +
-        '<div class="finding-excerpt">' + escapeHtml(currentLlmResult.explanation) + '</div>';
+        '<div class="llm-result-header">' +
+            '<div class="llm-result-title">' + ICON.bot + ' ' + t('llm_analysis_header') + '</div>' +
+            '<span class="queue-badge ' + badgeClass + '">' + escapeHtml(classLabel) + ' · ' + currentLlmResult.confidence + '%</span>' +
+        '</div>' +
+        '<div class="llm-result-body">' +
+            '<div class="llm-result-explanation">' + escapeHtml(currentLlmResult.explanation) + '</div>' +
+        '</div>';
+    el.style.borderColor = borderColor;
     findingsList.appendChild(el);
 }
 
