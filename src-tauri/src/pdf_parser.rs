@@ -173,6 +173,7 @@ fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
         let mut current_font_size: f32 = 12.0;
         let mut current_x: f32 = 0.0;
         let mut current_y: f32 = 0.0;
+        let mut current_render_mode: i32 = 0;
 
         for op in &content.operations {
             match op.operator.as_str() {
@@ -190,6 +191,12 @@ fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
                     if op.operands.len() == 1 {
                         let gray = op.operands[0].as_float().unwrap_or(0.0);
                         current_color_is_white = gray > 0.99;
+                    }
+                }
+                // Text rendering mode (Tr): 3 = invisible
+                "Tr" => {
+                    if op.operands.len() >= 1 {
+                        current_render_mode = op.operands[0].as_i64().unwrap_or(0) as i32;
                     }
                 }
                 // Font size (Tf operator: /FontName size Tf)
@@ -216,10 +223,11 @@ fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
                 "BT" => {
                     current_x = 0.0;
                     current_y = 0.0;
+                    current_render_mode = 0;
                 }
                 // Text operators
                 "Tj" | "TJ" | "'" | "\"" => {
-                    if current_color_is_white {
+                    if current_color_is_white || current_render_mode == 3 {
                         has_white_text = true;
                     }
                     if current_font_size <= 3.0 && current_font_size > 0.0 {
