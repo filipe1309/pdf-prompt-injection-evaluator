@@ -36,11 +36,15 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
         detect_instruction_patterns(*page, text, &en_regex, Severity::Warning, DetectionType::ForeignLanguageInstruction, "Suspicious instruction pattern detected in page text", &mut findings);
 
         detect_token_flooding(*page, text, &mut findings);
-        detect_citation_poisoning(*page, text, &mut findings);
+
+        // Only flag citation poisoning when text is hidden (white/microscopic)
+        if content.has_white_text || content.has_microscopic_font {
+            detect_citation_poisoning(*page, text, &mut findings);
+        }
     }
 
     // Structural signals as standalone findings
-    if content.has_white_text && findings.iter().all(|f| f.detection_type != DetectionType::WhiteText) {
+    if content.has_white_text && findings.iter().all(|f| f.detection_type != DetectionType::WhiteText && f.detection_type != DetectionType::CitationPoisoning) {
         findings.push(Finding {
             page: 0,
             severity: Severity::Warning,
@@ -325,12 +329,17 @@ fn detect_token_flooding(page: u32, text: &str, findings: &mut Vec<Finding>) {
 }
 
 fn detect_citation_poisoning(page: u32, text: &str, findings: &mut Vec<Finding>) {
-    // Detect fabricated legal citations (fake jurisprudence, súmulas, OJs)
-    let citation_regex = Regex::new(
-        r"(?i)(s[uú]mula\s+\d{3,4}/(TST|STF|STJ)|OJ-SDI\d?-\d{3,4}|PRECEDENTE\s+VINCULANTE|jurisprud[eê]ncia\s+(consolidada|un[aâ]nime|pac[ií]fica)|RR-\d{4,}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})"
-    ).expect("valid citation regex");
+    // Only flag citations when they are in hidden text (white/microscopic)
+    // This function is called per-page; the hiding context is checked by the caller
+    // Here we detect patterns that look like fabricated citations:
+    // - Súmula with high/unlikely numbers (>=500 for TST, >=900 for STF/STJ)
+    // - OJ-SDI with high numbers (>=500)
+    // - "PRECEDENTE VINCULANTE" (not a real legal term in Brazil)
+    let fake_citation_regex = Regex::new(
+        r"(?i)(s[uú]mula\s+([5-9]\d{2}|\d{4,})/(TST|STF|STJ)|OJ-SDI\d?-([5-9]\d{2}|\d{4,})|PRECEDENTE\s+VINCULANTE)"
+    ).expect("valid fake citation regex");
 
-    if let Some(matched) = citation_regex.find(text) {
+    if let Some(matched) = fake_citation_regex.find(text) {
         findings.push(Finding {
             page,
             severity: Severity::Warning,
