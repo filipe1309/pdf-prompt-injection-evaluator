@@ -33,7 +33,7 @@
     "detection_type_TokenFlooding": "Inundação de Tokens",
     "detection_type_ForeignLanguageInstruction": "Instrução em Idioma Estrangeiro",
     "desc_ZeroWidthChars": "Caracteres invisíveis (zero-width) detectados — texto oculto extraído abaixo",
-    "desc_InvisibleText": "Texto invisível detectado (fonte branca ou microscópica)",
+    "desc_InvisibleText": "Texto invisível detectado (modo de renderização oculto) — presente na camada de extração mas não exibido",
     "desc_WhiteText": "Texto em branco (invisível ao leitor) com instrução oculta detectada",
     "desc_MicroscopicFont": "Fonte microscópica (<2pt) detectada — texto ilegível ao olho humano",
     "desc_TextOutsideBounds": "Texto posicionado fora dos limites visíveis da página",

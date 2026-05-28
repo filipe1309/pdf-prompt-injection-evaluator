@@ -33,7 +33,7 @@
     "detection_type_TokenFlooding": "Token Flooding",
     "detection_type_ForeignLanguageInstruction": "Foreign Language Instruction",
     "desc_ZeroWidthChars": "Zero-width invisible characters detected — extracted hidden text shown below",
-    "desc_InvisibleText": "Invisible text detected (white font or microscopic size)",
+    "desc_InvisibleText": "Invisible text detected (hidden render mode) — present in extraction layer but not displayed",
     "desc_WhiteText": "White text (invisible to reader) with hidden instruction detected",
     "desc_MicroscopicFont": "Microscopic font size (<2pt) detected — unreadable to human eye",
     "desc_TextOutsideBounds": "Text positioned outside visible page boundaries",

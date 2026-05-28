@@ -17,6 +17,7 @@ pub struct PdfContent {
     pub annotations: Vec<AnnotationInfo>,
     pub has_javascript: bool,
     pub has_white_text: bool,
+    pub has_invisible_text: bool,
     pub has_microscopic_font: bool,
     pub has_text_outside_bounds: bool,
     pub has_acroform_fields: bool,
@@ -40,7 +41,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         pages.insert(page_num, text);
     }
 
-    let (has_white_text, has_microscopic_font, has_text_outside_bounds) = analyze_content_streams(&doc);
+    let (has_white_text, has_invisible_text, has_microscopic_font, has_text_outside_bounds) = analyze_content_streams(&doc);
     let (has_acroform_fields, form_field_values) = extract_acroform_fields(&doc);
 
     Ok(PdfContent {
@@ -49,6 +50,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         annotations: extract_annotations(&doc),
         has_javascript: check_javascript(&doc),
         has_white_text,
+        has_invisible_text,
         has_microscopic_font,
         has_text_outside_bounds,
         has_acroform_fields,
@@ -136,10 +138,11 @@ fn check_javascript(doc: &Document) -> bool {
     doc.objects.values().any(object_contains_javascript)
 }
 
-fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
+fn analyze_content_streams(doc: &Document) -> (bool, bool, bool, bool) {
     use lopdf::content::Content;
 
     let mut has_white_text = false;
+    let mut has_invisible_text = false;
     let mut has_microscopic_font = false;
     let mut has_text_outside_bounds = false;
 
@@ -227,8 +230,11 @@ fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
                 }
                 // Text operators
                 "Tj" | "TJ" | "'" | "\"" => {
-                    if current_color_is_white || current_render_mode == 3 {
+                    if current_color_is_white {
                         has_white_text = true;
+                    }
+                    if current_render_mode == 3 {
+                        has_invisible_text = true;
                     }
                     if current_font_size <= 3.0 && current_font_size > 0.0 {
                         has_microscopic_font = true;
@@ -244,7 +250,7 @@ fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
         }
     }
 
-    (has_white_text, has_microscopic_font, has_text_outside_bounds)
+    (has_white_text, has_invisible_text, has_microscopic_font, has_text_outside_bounds)
 }
 
 fn extract_acroform_fields(doc: &Document) -> (bool, Vec<String>) {

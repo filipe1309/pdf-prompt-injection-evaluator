@@ -11,6 +11,8 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
     // Determine primary detection type based on PDF structure signals
     let primary_type = if content.has_white_text {
         DetectionType::WhiteText
+    } else if content.has_invisible_text {
+        DetectionType::InvisibleText
     } else if content.has_microscopic_font {
         DetectionType::MicroscopicFont
     } else if content.has_text_outside_bounds {
@@ -45,6 +47,17 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
             detection_type: DetectionType::WhiteText,
             description: "White/invisible text detected in document content stream".to_string(),
             excerpt: "Color set to white (1,1,1) before text rendering".to_string(),
+            char_offset: None,
+        });
+    }
+
+    if content.has_invisible_text && findings.iter().all(|f| f.detection_type != DetectionType::InvisibleText) {
+        findings.push(Finding {
+            page: 0,
+            severity: Severity::Warning,
+            detection_type: DetectionType::InvisibleText,
+            description: "Invisible text (render mode 3) detected in document".to_string(),
+            excerpt: "Text present in extraction layer but not rendered visually (Tr 3)".to_string(),
             char_offset: None,
         });
     }
@@ -304,6 +317,7 @@ mod tests {
             annotations: Vec::new(),
             has_javascript: false,
             has_white_text: false,
+            has_invisible_text: false,
             has_microscopic_font: false,
             has_text_outside_bounds: false,
             has_acroform_fields: false,
