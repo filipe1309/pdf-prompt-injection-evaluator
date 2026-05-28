@@ -131,9 +131,13 @@ async function processFileQueue(paths) {
     fileQueue = paths.map(p => ({ path: p, name: p.split('/').pop().split('\\').pop(), status: 'pending', result: null }));
     queueResults = [];
     showQueueView();
+    showLoading(true);
+    document.getElementById('loading-text').textContent = t('analyzing') || 'Analyzing...';
 
     for (let i = 0; i < fileQueue.length; i++) {
         fileQueue[i].status = 'processing';
+        document.getElementById('loading-text').textContent =
+            (t('analyzing') || 'Analyzing...') + ' (' + (i + 1) + '/' + fileQueue.length + ')';
         updateQueueUI();
         try {
             const result = await invoke('analyze_pdf', { path: fileQueue[i].path });
@@ -146,6 +150,7 @@ async function processFileQueue(paths) {
         }
         updateQueueUI();
     }
+    showLoading(false);
 }
 
 function showQueueView() {
