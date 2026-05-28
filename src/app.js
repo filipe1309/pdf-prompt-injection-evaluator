@@ -3,6 +3,7 @@ import { renderPdfFromBytes, getPageCount, goToPage } from './pdf-viewer.js';
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const { open, save } = window.__TAURI__.dialog;
+const { getVersion } = window.__TAURI__.app;
 
 let translations = {};
 
@@ -307,6 +308,11 @@ function escapeHtml(str) {
 
 // Initialize translations on load
 loadTranslations();
+
+// Display version
+getVersion().then(v => {
+    document.getElementById('app-version').textContent = 'v' + v;
+});
 
 // Info modal
 const infoBtn = document.getElementById('info-btn');
