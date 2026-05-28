@@ -719,6 +719,7 @@ header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
 
 .safe .icon, .queue-safe .icon { color: #4caf50; }
 .queue-preliminary .icon, .queue-preliminary .icon-safe { color: #ffc107; }
+.queue-stat-preliminary .icon-safe { color: #ffc107; }
 .unsafe .icon, .queue-unsafe .icon { color: #f44336; }
 
 .finding-header { display: flex; align-items: center; gap: 6px; }
@@ -929,7 +930,7 @@ header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
 .queue-stat:hover { opacity: 0.8; }
 .queue-stat.active { box-shadow: 0 0 0 2px currentColor; transform: scale(1.05); }
 
-.queue-item-filtered { display: none; }
+.queue-item-filtered { display: none !important; }
 
 .queue-progress-section {
     display: flex;
