@@ -54,6 +54,8 @@ fmt-check: ## Check formatting without modifying files
 install-deps: ## Install required tooling
 	$(CARGO) install tauri-cli --version "^2"
 	$(RUSTUP) component add clippy rustfmt
+	$(RUSTUP) target add x86_64-pc-windows-gnu
+	brew install mingw-w64 makensis
 
 # ─── Maintenance ──────────────────────────────────────────────────────────────
 
