@@ -138,76 +138,181 @@ fn try_generate_pdf(
     let mut doc = genpdf::Document::new(font_family);
     doc.set_title(labels.title);
     doc.set_minimal_conformance();
+    doc.set_line_spacing(1.4);
 
     let mut decorator = genpdf::SimplePageDecorator::new();
-    decorator.set_margins(10);
+    decorator.set_margins(20);
     doc.set_page_decorator(decorator);
 
+    // Title
     doc.push(
         elements::Paragraph::new(labels.title)
             .aligned(Alignment::Center)
-            .styled(style::Style::new().bold().with_font_size(18)),
+            .styled(style::Style::new().bold().with_font_size(16)),
     );
-    doc.push(elements::Break::new(1.5));
+    doc.push(elements::Break::new(0.5));
 
-    push_section_title(&mut doc, labels.file_info);
-    doc.push(elements::Paragraph::new(format!("{}: {}", labels.filename, result.filename)));
-    doc.push(elements::Paragraph::new(format!(
-        "{}: {}",
-        labels.analysis_date, result.analyzed_at
-    )));
-    doc.push(elements::Paragraph::new(format!("{}: {}", labels.hash, result.file_hash)));
+    // Separator line
+    doc.push(elements::Paragraph::new(
+        "\u{2500}".repeat(80),
+    ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(180, 180, 180))));
     doc.push(elements::Break::new(1.0));
 
+    // File info section using table layout for alignment
+    push_section_title(&mut doc, labels.file_info);
+    doc.push(elements::Break::new(0.3));
+
+    let mut table = elements::TableLayout::new(vec![1, 3]);
+    table.push_row(vec![
+        Box::new(elements::Paragraph::new(labels.filename)
+            .styled(style::Style::new().bold().with_font_size(9))),
+        Box::new(elements::Paragraph::new(&result.filename)
+            .styled(style::Style::new().with_font_size(9))),
+    ]).expect("table row");
+    table.push_row(vec![
+        Box::new(elements::Paragraph::new(labels.analysis_date)
+            .styled(style::Style::new().bold().with_font_size(9))),
+        Box::new(elements::Paragraph::new(&result.analyzed_at)
+            .styled(style::Style::new().with_font_size(9))),
+    ]).expect("table row");
+    table.push_row(vec![
+        Box::new(elements::Paragraph::new(labels.hash)
+            .styled(style::Style::new().bold().with_font_size(9))),
+        Box::new(elements::Paragraph::new(&result.file_hash)
+            .styled(style::Style::new().with_font_size(8))),
+    ]).expect("table row");
+    doc.push(table);
+    doc.push(elements::Break::new(1.2));
+
+    // Verdict section with colored text
     push_section_title(&mut doc, labels.verdict);
-    let verdict_text = match result.verdict {
-        Verdict::Safe => labels.verdict_safe,
-        Verdict::Unsafe => labels.verdict_unsafe,
+    doc.push(elements::Break::new(0.3));
+    let (verdict_text, verdict_color) = match result.verdict {
+        Verdict::Safe => (labels.verdict_safe, style::Color::Rgb(34, 139, 34)),
+        Verdict::Unsafe => (labels.verdict_unsafe, style::Color::Rgb(200, 40, 40)),
+    };
+    let verdict_icon = match result.verdict {
+        Verdict::Safe => "\u{2713} ",
+        Verdict::Unsafe => "\u{2717} ",
     };
     doc.push(
-        elements::Paragraph::new(verdict_text)
-            .styled(style::Style::new().bold().with_font_size(14)),
+        elements::Paragraph::new(format!("{}{}", verdict_icon, verdict_text))
+            .styled(style::Style::new().bold().with_font_size(14).with_color(verdict_color)),
     );
-    doc.push(elements::Break::new(1.0));
+    doc.push(elements::Break::new(1.2));
 
+    // Findings section
     push_section_title(&mut doc, labels.findings);
+    doc.push(elements::Break::new(0.3));
     if result.findings.is_empty() {
-        doc.push(elements::Paragraph::new(labels.no_findings));
+        doc.push(
+            elements::Paragraph::new(labels.no_findings)
+                .styled(style::Style::new().italic().with_font_size(10)
+                    .with_color(style::Color::Rgb(100, 100, 100))),
+        );
     } else {
         for (index, finding) in result.findings.iter().enumerate() {
-            doc.push(elements::Paragraph::new(format_finding(index + 1, finding, &labels)));
-            doc.push(elements::Break::new(0.8));
+            push_finding_block(&mut doc, index + 1, finding, &labels);
         }
     }
     doc.push(elements::Break::new(1.0));
 
+    // LLM analysis section
     if let Some(llm_result) = llm_result {
         push_section_title(&mut doc, labels.llm_analysis);
-        doc.push(elements::Paragraph::new(format!(
-            "{}: {}",
-            labels.classification, llm_result.classification
-        )));
-        doc.push(elements::Paragraph::new(format!(
-            "{}: {}%",
-            labels.confidence, llm_result.confidence
-        )));
-        doc.push(elements::Paragraph::new(format!(
-            "{}: {}",
-            labels.explanation, llm_result.explanation
-        )));
+        doc.push(elements::Break::new(0.3));
+
+        let mut table = elements::TableLayout::new(vec![1, 3]);
+        table.push_row(vec![
+            Box::new(elements::Paragraph::new(labels.classification)
+                .styled(style::Style::new().bold().with_font_size(9))),
+            Box::new(elements::Paragraph::new(&llm_result.classification)
+                .styled(style::Style::new().with_font_size(9))),
+        ]).expect("table row");
+        table.push_row(vec![
+            Box::new(elements::Paragraph::new(labels.confidence)
+                .styled(style::Style::new().bold().with_font_size(9))),
+            Box::new(elements::Paragraph::new(format!("{}%", llm_result.confidence))
+                .styled(style::Style::new().with_font_size(9))),
+        ]).expect("table row");
+        table.push_row(vec![
+            Box::new(elements::Paragraph::new(labels.explanation)
+                .styled(style::Style::new().bold().with_font_size(9))),
+            Box::new(elements::Paragraph::new(&llm_result.explanation)
+                .styled(style::Style::new().with_font_size(9))),
+        ]).expect("table row");
+        doc.push(table);
         doc.push(elements::Break::new(1.0));
     }
 
-    push_section_title(&mut doc, labels.footer);
-    doc.push(elements::Paragraph::new(format!(
-        "{}: {}",
-        labels.version,
-        env!("CARGO_PKG_VERSION")
-    )));
-    doc.push(elements::Paragraph::new(format!("{}", labels.disclaimer)));
+    // Footer separator
+    doc.push(elements::Paragraph::new(
+        "\u{2500}".repeat(80),
+    ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(180, 180, 180))));
+    doc.push(elements::Break::new(0.3));
+
+    // Footer
+    doc.push(
+        elements::Paragraph::new(format!("{}: {}", labels.version, env!("CARGO_PKG_VERSION")))
+            .styled(style::Style::new().with_font_size(8).with_color(style::Color::Rgb(120, 120, 120))),
+    );
+    doc.push(
+        elements::Paragraph::new(labels.disclaimer)
+            .styled(style::Style::new().italic().with_font_size(8)
+                .with_color(style::Color::Rgb(120, 120, 120))),
+    );
 
     doc.render_to_file(output_path)
         .map_err(|e| ReportError::SaveError(e.to_string()))
+}
+
+fn push_finding_block(doc: &mut genpdf::Document, index: usize, finding: &Finding, labels: &ReportLabels) {
+    let (severity_text, severity_color) = match finding.severity {
+        Severity::Critical => (labels.severity_critical, style::Color::Rgb(200, 40, 40)),
+        Severity::Warning => (labels.severity_warning, style::Color::Rgb(200, 140, 0)),
+        Severity::Clean => (labels.severity_clean, style::Color::Rgb(34, 139, 34)),
+    };
+
+    // Finding header: "1. CRÍTICO — Página 1"
+    let mut header = elements::Paragraph::new(format!("{}. ", index));
+    header.push_styled(
+        format!("{}", severity_text),
+        style::Style::new().bold().with_color(severity_color),
+    );
+    header.push_styled(
+        format!(" \u{2014} {} {}", labels.page_label, finding.page),
+        style::Style::new().with_color(style::Color::Rgb(80, 80, 80)),
+    );
+    doc.push(header.styled(style::Style::new().with_font_size(10)));
+
+    // Description
+    doc.push(
+        elements::PaddedElement::new(
+            elements::Paragraph::new(&finding.description)
+                .styled(style::Style::new().with_font_size(9)),
+            genpdf::Margins::trbl(1, 0, 1, 12),
+        ),
+    );
+
+    // Excerpt (if present)
+    let excerpt = finding.excerpt.trim();
+    if !excerpt.is_empty() {
+        let excerpt_display = if excerpt.len() > 120 {
+            format!("{}...", &excerpt[..120])
+        } else {
+            excerpt.to_string()
+        };
+        doc.push(
+            elements::PaddedElement::new(
+                elements::Paragraph::new(format!("\u{201c}{}\u{201d}", excerpt_display))
+                    .styled(style::Style::new().italic().with_font_size(8)
+                        .with_color(style::Color::Rgb(80, 80, 80))),
+                genpdf::Margins::trbl(0, 0, 2, 12),
+            ),
+        );
+    }
+
+    doc.push(elements::Break::new(0.4));
 }
 
 fn load_font_family() -> Result<fonts::FontFamily<fonts::FontData>, ReportError> {
@@ -302,7 +407,9 @@ fn build_text_report(result: &AnalysisResult, llm_result: Option<&LlmClassificat
 
 fn push_section_title(doc: &mut genpdf::Document, title: &str) {
     doc.push(
-        elements::Paragraph::new(title).styled(style::Style::new().bold().with_font_size(13)),
+        elements::Paragraph::new(title)
+            .styled(style::Style::new().bold().with_font_size(12)
+                .with_color(style::Color::Rgb(40, 40, 80))),
     );
 }
 
