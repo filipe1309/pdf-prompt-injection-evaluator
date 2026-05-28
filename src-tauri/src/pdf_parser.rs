@@ -24,6 +24,7 @@ pub struct PdfContent {
     pub form_field_values: Vec<String>,
     pub has_incremental_update: bool,
     pub actual_text_values: Vec<String>,
+    pub has_hidden_ocg: bool,
 }
 
 pub struct AnnotationInfo {
@@ -48,6 +49,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
     let (has_white_text, has_invisible_text, has_microscopic_font, has_text_outside_bounds) = analyze_content_streams(&doc);
     let (has_acroform_fields, form_field_values) = extract_acroform_fields(&doc);
     let actual_text_values = extract_actual_text(&doc);
+    let has_hidden_ocg = detect_hidden_ocg(&doc);
 
     Ok(PdfContent {
         pages,
@@ -62,6 +64,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         form_field_values,
         has_incremental_update,
         actual_text_values,
+        has_hidden_ocg,
     })
 }
 
@@ -353,6 +356,50 @@ fn extract_acroform_fields(doc: &Document) -> (bool, Vec<String>) {
 
     let has_fields = !fields.is_empty();
     (has_fields, values)
+}
+
+/// Detects Optional Content Groups (OCG) that are set to OFF.
+/// Hidden OCG layers are not rendered but their text IS extracted by parsers.
+fn detect_hidden_ocg(doc: &Document) -> bool {
+    // Look for /OCProperties in catalog with /OFF array containing OCG references
+    let catalog = match doc.trailer.get(b"Root") {
+        Ok(root) => match doc.dereference(root) {
+            Ok((_, obj)) => match obj.as_dict() {
+                Ok(dict) => dict.clone(),
+                Err(_) => return false,
+            },
+            Err(_) => return false,
+        },
+        Err(_) => return false,
+    };
+
+    let oc_props = match catalog.get(b"OCProperties") {
+        Ok(obj) => match doc.dereference(obj) {
+            Ok((_, obj)) => match obj.as_dict() {
+                Ok(dict) => dict.clone(),
+                Err(_) => return false,
+            },
+            Err(_) => return false,
+        },
+        Err(_) => return false,
+    };
+
+    // Check /D (default viewing config) for /OFF array
+    if let Ok(d) = oc_props.get(b"D") {
+        if let Ok((_, d_obj)) = doc.dereference(d) {
+            if let Ok(d_dict) = d_obj.as_dict() {
+                if let Ok(off) = d_dict.get(b"OFF") {
+                    if let Ok((_, off_obj)) = doc.dereference(off) {
+                        if let Ok(arr) = off_obj.as_array() {
+                            return !arr.is_empty();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    false
 }
 
 /// Extracts /ActualText values from StructTreeRoot elements.

@@ -11,6 +11,8 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
     // Determine primary detection type based on PDF structure signals
     let primary_type = if content.has_incremental_update {
         DetectionType::IncrementalUpdate
+    } else if content.has_hidden_ocg {
+        DetectionType::HiddenOcgLayer
     } else if content.has_white_text {
         DetectionType::WhiteText
     } else if content.has_invisible_text {
@@ -365,6 +367,7 @@ mod tests {
             form_field_values: Vec::new(),
             has_incremental_update: false,
             actual_text_values: Vec::new(),
+            has_hidden_ocg: false,
         }
     }
 

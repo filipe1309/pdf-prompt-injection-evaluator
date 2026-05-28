@@ -24,6 +24,7 @@ pub enum DetectionType {
     ForeignLanguageInstruction,
     IncrementalUpdate,
     ActualTextInjection,
+    HiddenOcgLayer,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
