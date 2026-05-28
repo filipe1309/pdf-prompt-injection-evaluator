@@ -22,6 +22,7 @@ pub struct PdfContent {
     pub has_text_outside_bounds: bool,
     pub has_acroform_fields: bool,
     pub form_field_values: Vec<String>,
+    pub has_incremental_update: bool,
 }
 
 pub struct AnnotationInfo {
@@ -31,6 +32,8 @@ pub struct AnnotationInfo {
 }
 
 pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
+    let has_incremental_update = detect_incremental_update(path);
+
     let doc = Document::load(path).map_err(|err| PdfParseError::OpenError(err.to_string()))?;
 
     let mut pages = HashMap::new();
@@ -55,7 +58,29 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         has_text_outside_bounds,
         has_acroform_fields,
         form_field_values,
+        has_incremental_update,
     })
+}
+
+/// Detects incremental updates by counting %%EOF markers in raw bytes.
+/// A valid single-revision PDF has exactly one %%EOF. Multiple markers indicate
+/// incremental updates were appended (potentially after a digital signature).
+fn detect_incremental_update(path: &Path) -> bool {
+    let Ok(data) = std::fs::read(path) else {
+        return false;
+    };
+    let mut count = 0;
+    let marker = b"%%EOF";
+    let mut pos = 0;
+    while pos + marker.len() <= data.len() {
+        if &data[pos..pos + marker.len()] == marker {
+            count += 1;
+            pos += marker.len();
+        } else {
+            pos += 1;
+        }
+    }
+    count > 1
 }
 
 fn extract_metadata(doc: &Document) -> HashMap<String, String> {

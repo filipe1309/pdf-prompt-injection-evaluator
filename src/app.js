@@ -23,6 +23,10 @@ function t(key) {
     return translations[key] || key;
 }
 
+function tOptional(key) {
+    return translations[key] || null;
+}
+
 function applyTranslations() {
     const el = (id) => document.getElementById(id);
     if (el('app-title')) el('app-title').textContent = t('app_title');
@@ -155,12 +159,15 @@ function showResults() {
             const description = t('desc_' + finding.detection_type) || finding.description;
             const el = document.createElement('div');
             el.className = 'finding-item ' + severity;
-            el.innerHTML =
+                const excerptText = finding.char_offset == null
+                    ? (tOptional('excerpt_' + finding.detection_type) || finding.excerpt)
+                    : finding.excerpt;
+                el.innerHTML =
                 '<div class="finding-header">' +
                     '<span class="finding-tag tag-' + severity + '">' + escapeHtml(typeTag) + '</span> ' +
-                    icon + ' ' + t('page') + ' ' + finding.page + ': ' + escapeHtml(description) +
+                    icon + ' ' + (finding.page > 0 ? t('page') + ' ' + finding.page + ': ' : '') + escapeHtml(description) +
                 '</div>' +
-                (finding.excerpt ? '<div class="finding-excerpt">"' + escapeHtml(finding.excerpt) + '"</div>' : '');
+                (finding.excerpt ? '<div class="finding-excerpt">"' + escapeHtml(excerptText) + '"</div>' : '');
             findingsList.appendChild(el);
         }
     }

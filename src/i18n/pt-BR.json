@@ -32,6 +32,7 @@
     "detection_type_MetadataInjection": "Injeção em Metadados",
     "detection_type_TokenFlooding": "Inundação de Tokens",
     "detection_type_ForeignLanguageInstruction": "Instrução em Idioma Estrangeiro",
+    "detection_type_IncrementalUpdate": "Revisão Incremental",
     "desc_ZeroWidthChars": "Caracteres invisíveis (zero-width) detectados — texto oculto extraído abaixo",
     "desc_InvisibleText": "Texto invisível detectado (modo de renderização oculto) — presente na camada de extração mas não exibido",
     "desc_WhiteText": "Texto em branco (invisível ao leitor) com instrução oculta detectada",
@@ -44,5 +45,11 @@
     "desc_EmbeddedJavaScript": "JavaScript embutido detectado no documento PDF",
     "desc_MetadataInjection": "Padrão de instrução suspeito detectado nos metadados",
     "desc_TokenFlooding": "Inundação estatística: repetição excessiva de termos jurídicos favoráveis",
-    "desc_ForeignLanguageInstruction": "Instrução em idioma estrangeiro detectada em documento em português"
+    "desc_ForeignLanguageInstruction": "Instrução em idioma estrangeiro detectada em documento em português",
+    "desc_IncrementalUpdate": "Revisão incremental detectada — conteúdo adicionado após a estrutura original do PDF (possível injeção pós-assinatura)",
+    "excerpt_WhiteText": "Cor definida como branco (1,1,1) antes da renderização de texto",
+    "excerpt_InvisibleText": "Texto presente na camada de extração mas não renderizado visualmente (Tr 3)",
+    "excerpt_MicroscopicFont": "Texto renderizado com tamanho de fonte abaixo do limite legível",
+    "excerpt_TextOutsideBounds": "Coordenadas do texto excedem as dimensões do MediaBox da página",
+    "excerpt_IncrementalUpdate": "Múltiplos marcadores %%EOF encontrados — possível injeção de conteúdo pós-assinatura"
 }

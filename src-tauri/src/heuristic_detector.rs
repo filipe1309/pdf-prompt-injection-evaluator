@@ -9,7 +9,9 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
     let en_regex = instruction_patterns_en();
 
     // Determine primary detection type based on PDF structure signals
-    let primary_type = if content.has_white_text {
+    let primary_type = if content.has_incremental_update {
+        DetectionType::IncrementalUpdate
+    } else if content.has_white_text {
         DetectionType::WhiteText
     } else if content.has_invisible_text {
         DetectionType::InvisibleText
@@ -51,7 +53,7 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
         });
     }
 
-    if content.has_invisible_text && findings.iter().all(|f| f.detection_type != DetectionType::InvisibleText) {
+    if content.has_invisible_text && !content.has_incremental_update && findings.iter().all(|f| f.detection_type != DetectionType::InvisibleText) {
         findings.push(Finding {
             page: 0,
             severity: Severity::Warning,
@@ -80,6 +82,17 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
             detection_type: DetectionType::TextOutsideBounds,
             description: "Text positioned outside visible page boundaries".to_string(),
             excerpt: "Text coordinates exceed page MediaBox dimensions".to_string(),
+            char_offset: None,
+        });
+    }
+
+    if content.has_incremental_update && findings.iter().all(|f| f.detection_type != DetectionType::IncrementalUpdate) {
+        findings.push(Finding {
+            page: 0,
+            severity: Severity::Warning,
+            detection_type: DetectionType::IncrementalUpdate,
+            description: "Incremental update detected — content appended after original PDF structure".to_string(),
+            excerpt: "Multiple %%EOF markers found — possible post-signature content injection".to_string(),
             char_offset: None,
         });
     }
@@ -335,6 +348,7 @@ mod tests {
             has_text_outside_bounds: false,
             has_acroform_fields: false,
             form_field_values: Vec::new(),
+            has_incremental_update: false,
         }
     }
 

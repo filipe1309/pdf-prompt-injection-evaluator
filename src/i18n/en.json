@@ -32,6 +32,7 @@
     "detection_type_MetadataInjection": "Metadata Injection",
     "detection_type_TokenFlooding": "Token Flooding",
     "detection_type_ForeignLanguageInstruction": "Foreign Language Instruction",
+    "detection_type_IncrementalUpdate": "Incremental Update",
     "desc_ZeroWidthChars": "Zero-width invisible characters detected — extracted hidden text shown below",
     "desc_InvisibleText": "Invisible text detected (hidden render mode) — present in extraction layer but not displayed",
     "desc_WhiteText": "White text (invisible to reader) with hidden instruction detected",
@@ -44,5 +45,11 @@
     "desc_EmbeddedJavaScript": "Embedded JavaScript detected in PDF document",
     "desc_MetadataInjection": "Suspicious instruction pattern detected in metadata",
     "desc_TokenFlooding": "Statistical flooding: excessive repetition of favorable legal terms",
-    "desc_ForeignLanguageInstruction": "Foreign language instruction detected in Portuguese document"
+    "desc_ForeignLanguageInstruction": "Foreign language instruction detected in Portuguese document",
+    "desc_IncrementalUpdate": "Incremental update detected — content appended after original PDF structure (possible post-signature injection)",
+    "excerpt_WhiteText": "Color set to white (1,1,1) before text rendering",
+    "excerpt_InvisibleText": "Text present in extraction layer but not rendered visually (Tr 3)",
+    "excerpt_MicroscopicFont": "Text rendered with font size below readable threshold",
+    "excerpt_TextOutsideBounds": "Text coordinates exceed page MediaBox dimensions",
+    "excerpt_IncrementalUpdate": "Multiple %%EOF markers found — possible post-signature content injection"
 }
