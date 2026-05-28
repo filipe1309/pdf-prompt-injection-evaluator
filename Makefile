@@ -1,4 +1,4 @@
-.PHONY: help dev build release release-mac release-win test lint fmt clean install-deps check
+.PHONY: help dev build release release-mac release-win release-win-portable test lint fmt clean install-deps check
 
 # Rust toolchain — use absolute path to ensure cargo/rustc are always found
 RUST_BIN := $(HOME)/.rustup/toolchains/stable-aarch64-apple-darwin/bin
@@ -26,8 +26,14 @@ release: ## Build production release bundle for current platform
 release-mac: ## Build macOS bundle (.app + .dmg) for Apple Silicon
 	$(CARGO) tauri build --target aarch64-apple-darwin
 
-release-win: ## Build Windows bundle (.exe / .msi)
+release-win: ## Build Windows installer (.exe NSIS)
 	$(CARGO) tauri build --target x86_64-pc-windows-gnu
+
+release-win-portable: ## Build Windows portable .exe (no installer)
+	$(CARGO) tauri build --target x86_64-pc-windows-gnu
+	@mkdir -p dist
+	@cp src-tauri/target/x86_64-pc-windows-gnu/release/pdf-prompt-injection-evaluator.exe dist/
+	@echo "Portable exe at: dist/pdf-prompt-injection-evaluator.exe"
 
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
