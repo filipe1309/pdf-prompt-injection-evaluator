@@ -164,7 +164,7 @@ function showResults() {
                     : finding.excerpt;
                 el.innerHTML =
                 '<div class="finding-header">' +
-                    '<span class="finding-tag tag-' + severity + '">' + escapeHtml(typeTag) + '</span> ' +
+                    '<span class="finding-tag tag-' + severity + '" data-info-type="' + finding.detection_type + '">' + escapeHtml(typeTag) + '</span> ' +
                     icon + ' ' + (finding.page > 0 ? t('page') + ' ' + finding.page + ': ' : '') + escapeHtml(description) +
                 '</div>' +
                 (finding.excerpt ? '<div class="finding-excerpt">"' + escapeHtml(excerptText) + '"</div>' : '');
@@ -351,7 +351,7 @@ function renderInfoModal() {
         const desc = t('info_' + type);
         const sevLabel = severity === 'critical' ? t('info_severity_critical') : t('info_severity_warning');
         return `
-            <div class="info-item ${severity}">
+            <div class="info-item ${severity}" data-type="${type}">
                 <div class="info-item-title">
                     <span>${icon}</span>
                     <span>${escapeHtml(title)}</span>
@@ -361,4 +361,30 @@ function renderInfoModal() {
             </div>
         `;
     }).join('');
+}
+
+// Click on finding tag → open info modal and highlight the related item
+findingsList.addEventListener('click', (e) => {
+    const tag = e.target.closest('[data-info-type]');
+    if (!tag) return;
+    const type = tag.dataset.infoType;
+    openInfoWithHighlight(type);
+});
+
+function openInfoWithHighlight(type) {
+    renderInfoModal();
+    infoModal.classList.remove('hidden');
+
+    // Remove previous highlights
+    infoList.querySelectorAll('.info-item-highlight').forEach(el => el.classList.remove('info-item-highlight'));
+
+    // Find and highlight the matching item
+    const items = infoList.querySelectorAll('.info-item');
+    for (const item of items) {
+        if (item.dataset.type === type) {
+            item.classList.add('info-item-highlight');
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            break;
+        }
+    }
 }
