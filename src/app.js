@@ -341,23 +341,49 @@ function displayLlmResult() {
 
 // Export
 exportBtn.addEventListener('click', async () => {
-    if (!currentResult) return;
-    const outputPath = await save({
-        filters: [{ name: 'PDF', extensions: ['pdf'] }],
-        defaultPath: 'report-' + currentResult.filename,
-    });
-    if (outputPath) {
+    // If viewing a single result, export it
+    if (currentResult) {
+        const outputPath = await save({
+            filters: [{ name: 'PDF', extensions: ['pdf'] }],
+            defaultPath: 'report-' + currentResult.filename,
+        });
+        if (outputPath) {
+            try {
+                await invoke('export_report', {
+                    result: currentResult,
+                    llmResult: currentLlmResult,
+                    outputPath,
+                });
+                alert(t('export_success'));
+            } catch (err) {
+                alert('Export error: ' + err);
+            }
+        }
+        return;
+    }
+
+    // Queue mode: export all completed results
+    const completed = fileQueue.filter(f => f.status === 'done');
+    if (completed.length === 0) return;
+
+    for (const item of completed) {
+        const outputPath = await save({
+            filters: [{ name: 'PDF', extensions: ['pdf'] }],
+            defaultPath: 'report-' + item.name,
+        });
+        if (!outputPath) break;
         try {
             await invoke('export_report', {
-                result: currentResult,
-                llmResult: currentLlmResult,
+                result: item.result,
+                llmResult: null,
                 outputPath,
             });
-            alert(t('export_success'));
         } catch (err) {
-            alert('Export error: ' + err);
+            alert('Export error (' + item.name + '): ' + err);
+            break;
         }
     }
+    alert(t('export_success'));
 });
 
 // New File
