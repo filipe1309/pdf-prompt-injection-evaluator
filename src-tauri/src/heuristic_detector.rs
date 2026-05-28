@@ -565,4 +565,17 @@ mod integration_tests {
         assert!(findings.iter().any(|f| f.detection_type == DetectionType::HiddenOcgLayer),
             "Should detect HiddenOcgLayer");
     }
+
+    #[test]
+    fn test_detects_sample_16_instrucao_visivel() {
+        let path = Path::new("../samples/vectors/16_instrucao_visivel.pdf");
+        if !path.exists() { return; }
+        let content = pdf_parser::parse_pdf(path).unwrap();
+        let findings = detect(&content);
+        for f in &findings {
+            println!("  {:?}", f);
+        }
+        assert!(findings.iter().any(|f| f.detection_type == DetectionType::InstructionPattern),
+            "Should detect InstructionPattern in visible text");
+    }
 }
