@@ -1,9 +1,9 @@
 .PHONY: help dev build release release-mac release-win test lint fmt clean install-deps check
 
-# Rust toolchain PATH — ensures cargo/rustc are found in recipe shells
-RUST_TOOLCHAIN_BIN := $(HOME)/.rustup/toolchains/stable-aarch64-apple-darwin/bin
-export PATH := $(RUST_TOOLCHAIN_BIN):$(HOME)/.cargo/bin:/opt/homebrew/bin:$(PATH)
-SHELL := /bin/bash
+# Rust toolchain — use absolute path to ensure cargo/rustc are always found
+RUST_BIN := $(HOME)/.rustup/toolchains/stable-aarch64-apple-darwin/bin
+CARGO := PATH="$(RUST_BIN):$(HOME)/.cargo/bin:/opt/homebrew/bin:$$PATH" cargo
+RUSTUP := PATH="$(RUST_BIN):$(HOME)/.cargo/bin:/opt/homebrew/bin:$$PATH" rustup
 
 # Default target
 help: ## Show this help message
@@ -13,52 +13,52 @@ help: ## Show this help message
 # ─── Development ──────────────────────────────────────────────────────────────
 
 dev: ## Run the app in development mode
-	cargo tauri dev
+	$(CARGO) tauri dev
 
 # ─── Build ────────────────────────────────────────────────────────────────────
 
 build: ## Build the Rust backend (debug)
-	cd src-tauri && cargo build
+	cd src-tauri && $(CARGO) build
 
 release: ## Build production release bundle for current platform
-	cargo tauri build
+	$(CARGO) tauri build
 
 release-mac: ## Build macOS bundle (.app + .dmg) for Apple Silicon
-	cargo tauri build --target aarch64-apple-darwin
+	$(CARGO) tauri build --target aarch64-apple-darwin
 
 release-win: ## Build Windows bundle (.exe / .msi)
-	cargo tauri build --target x86_64-pc-windows-msvc
+	$(CARGO) tauri build --target x86_64-pc-windows-msvc
 
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
 test: ## Run all unit tests
-	cd src-tauri && cargo test
+	cd src-tauri && $(CARGO) test
 
 test-verbose: ## Run tests with output
-	cd src-tauri && cargo test -- --nocapture
+	cd src-tauri && $(CARGO) test -- --nocapture
 
 check: ## Run cargo check (fast compile verification)
-	cd src-tauri && cargo check
+	cd src-tauri && $(CARGO) check
 
 lint: ## Run clippy linter
-	cd src-tauri && cargo clippy -- -D warnings
+	cd src-tauri && $(CARGO) clippy -- -D warnings
 
 fmt: ## Format Rust code
-	cd src-tauri && cargo fmt
+	cd src-tauri && $(CARGO) fmt
 
 fmt-check: ## Check formatting without modifying files
-	cd src-tauri && cargo fmt -- --check
+	cd src-tauri && $(CARGO) fmt -- --check
 
 # ─── Setup ────────────────────────────────────────────────────────────────────
 
 install-deps: ## Install required tooling
-	cargo install tauri-cli --version "^2"
-	rustup component add clippy rustfmt
+	$(CARGO) install tauri-cli --version "^2"
+	$(RUSTUP) component add clippy rustfmt
 
 # ─── Maintenance ──────────────────────────────────────────────────────────────
 
 clean: ## Remove build artifacts
-	cd src-tauri && cargo clean
+	cd src-tauri && $(CARGO) clean
 
 update: ## Update Rust dependencies
-	cd src-tauri && cargo update
+	cd src-tauri && $(CARGO) update
