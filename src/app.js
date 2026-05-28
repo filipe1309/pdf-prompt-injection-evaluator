@@ -314,8 +314,15 @@ deepAnalysisBtn.addEventListener('click', async () => {
 
     showLoading(true);
     try {
-        const allText = currentResult.extracted_text || currentResult.findings.map(f => f.excerpt).filter(Boolean).join('\n');
-        currentLlmResult = await invoke('deep_analysis', { text: allText || 'No text extracted from PDF' });
+        let textForLlm = currentResult.extracted_text || '';
+        // Append finding details so LLM can see hidden content (metadata, annotations, etc.)
+        if (currentResult.findings.length > 0) {
+            textForLlm += '\n\n--- HEURISTIC FINDINGS (hidden/suspicious content detected) ---\n';
+            currentResult.findings.forEach((f, i) => {
+                textForLlm += `${i+1}. [${f.detection_type}] Page ${f.page}: ${f.description}\n   Excerpt: "${f.excerpt}"\n`;
+            });
+        }
+        currentLlmResult = await invoke('deep_analysis', { text: textForLlm || 'No text extracted from PDF' });
         displayLlmResult();
     } catch (err) {
         alert(t('llm_analysis_header') + ' ' + t('error').toLowerCase() + ': ' + err);
