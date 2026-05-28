@@ -101,7 +101,7 @@ fn translate_description(detection_type: &DetectionType, original: &str, languag
         DetectionType::ZeroWidthChars => "Caracteres de largura zero detectados no texto".to_string(),
         DetectionType::InvisibleText => "Texto invis\u{ed}vel detectado (modo de renderiza\u{e7}\u{e3}o oculto)".to_string(),
         DetectionType::WhiteText => "Texto em branco (invis\u{ed}vel ao leitor) com instru\u{e7}\u{e3}o oculta detectada".to_string(),
-        DetectionType::MicroscopicFont => "Fonte microsc\u{f3}pica (<2pt) detectada \u{2014} texto ileg\u{ed}vel".to_string(),
+        DetectionType::MicroscopicFont => "Fonte microscopica (<2pt) detectada -- texto ilegivel".to_string(),
         DetectionType::TextOutsideBounds => "Texto posicionado fora dos limites vis\u{ed}veis da p\u{e1}gina".to_string(),
         DetectionType::HiddenAnnotation => "Anota\u{e7}\u{e3}o oculta com conte\u{fa}do suspeito detectada".to_string(),
         DetectionType::HiddenFormField => "Campo de formul\u{e1}rio oculto com instru\u{e7}\u{f5}es detectado".to_string(),
@@ -111,7 +111,7 @@ fn translate_description(detection_type: &DetectionType, original: &str, languag
         DetectionType::MetadataInjection => "Inje\u{e7}\u{e3}o detectada em metadados do PDF".to_string(),
         DetectionType::TokenFlooding => "Inunda\u{e7}\u{e3}o de tokens detectada (texto oculto repetitivo)".to_string(),
         DetectionType::ForeignLanguageInstruction => "Instru\u{e7}\u{e3}o em idioma estrangeiro detectada".to_string(),
-        DetectionType::IncrementalUpdate => "Revis\u{e3}o incremental detectada \u{2014} conte\u{fa}do adicionado ap\u{f3}s estrutura original".to_string(),
+        DetectionType::IncrementalUpdate => "Revisao incremental detectada -- conteudo adicionado apos estrutura original".to_string(),
         DetectionType::ActualTextInjection => "Inje\u{e7}\u{e3}o via ActualText detectada".to_string(),
         DetectionType::HiddenOcgLayer => "Camada OCG oculta com texto suspeito detectada".to_string(),
         DetectionType::CitationPoisoning => "Cita\u{e7}\u{e3}o jur\u{ed}dica fabricada detectada".to_string(),
@@ -233,12 +233,8 @@ fn try_generate_pdf(
         Verdict::Safe => (labels.verdict_safe, style::Color::Rgb(34, 139, 34)),
         Verdict::Unsafe => (labels.verdict_unsafe, style::Color::Rgb(200, 40, 40)),
     };
-    let verdict_icon = match result.verdict {
-        Verdict::Safe => "\u{2713} ",
-        Verdict::Unsafe => "\u{2717} ",
-    };
     doc.push(
-        elements::Paragraph::new(format!("{}{}", verdict_icon, verdict_text))
+        elements::Paragraph::new(verdict_text)
             .styled(style::Style::new().bold().with_font_size(14).with_color(verdict_color)),
     );
     doc.push(elements::Break::new(1.2));
@@ -407,12 +403,8 @@ fn try_generate_batch_pdf(
             Verdict::Safe => (labels.verdict_safe, style::Color::Rgb(34, 139, 34)),
             Verdict::Unsafe => (labels.verdict_unsafe, style::Color::Rgb(200, 40, 40)),
         };
-        let verdict_icon = match result.verdict {
-            Verdict::Safe => "\u{2713} ",
-            Verdict::Unsafe => "\u{2717} ",
-        };
         doc.push(
-            elements::Paragraph::new(format!("{}{}", verdict_icon, verdict_text))
+            elements::Paragraph::new(verdict_text)
                 .styled(style::Style::new().bold().with_font_size(11).with_color(verdict_color)),
         );
 
