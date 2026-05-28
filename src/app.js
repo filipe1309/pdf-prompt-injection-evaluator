@@ -305,3 +305,60 @@ function escapeHtml(str) {
 
 // Initialize translations on load
 loadTranslations();
+
+// Info modal
+const infoBtn = document.getElementById('info-btn');
+const infoModal = document.getElementById('info-modal');
+const closeInfoBtn = document.getElementById('close-info-btn');
+const infoList = document.getElementById('info-list');
+
+const INJECTION_TYPES = [
+    { type: 'WhiteText', severity: 'warning', icon: '⬜' },
+    { type: 'InvisibleText', severity: 'warning', icon: '👻' },
+    { type: 'MicroscopicFont', severity: 'warning', icon: '🔬' },
+    { type: 'TextOutsideBounds', severity: 'warning', icon: '📐' },
+    { type: 'HiddenOcgLayer', severity: 'warning', icon: '📂' },
+    { type: 'IncrementalUpdate', severity: 'warning', icon: '📝' },
+    { type: 'ActualTextInjection', severity: 'critical', icon: '🏷️' },
+    { type: 'EmbeddedJavaScript', severity: 'critical', icon: '⚡' },
+    { type: 'HiddenAnnotation', severity: 'warning', icon: '📌' },
+    { type: 'HiddenFormField', severity: 'warning', icon: '📋' },
+    { type: 'ForeignLanguageInstruction', severity: 'warning', icon: '🌐' },
+    { type: 'TokenFlooding', severity: 'warning', icon: '🌊' },
+    { type: 'CitationPoisoning', severity: 'warning', icon: '📚' },
+    { type: 'MetadataInjection', severity: 'warning', icon: '🏗️' },
+    { type: 'InstructionPattern', severity: 'warning', icon: '⚠️' },
+    { type: 'ZeroWidthChars', severity: 'warning', icon: '🔤' },
+    { type: 'UnicodeTrick', severity: 'warning', icon: '↔️' },
+];
+
+infoBtn.addEventListener('click', () => {
+    renderInfoModal();
+    infoModal.classList.remove('hidden');
+});
+
+closeInfoBtn.addEventListener('click', () => infoModal.classList.add('hidden'));
+infoModal.addEventListener('click', (e) => {
+    if (e.target === infoModal) infoModal.classList.add('hidden');
+});
+
+function renderInfoModal() {
+    if (document.getElementById('info-title')) {
+        document.getElementById('info-title').textContent = t('info_title');
+    }
+    infoList.innerHTML = INJECTION_TYPES.map(({ type, severity, icon }) => {
+        const title = t('detection_type_' + type);
+        const desc = t('info_' + type);
+        const sevLabel = severity === 'critical' ? t('info_severity_critical') : t('info_severity_warning');
+        return `
+            <div class="info-item">
+                <div class="info-item-title">
+                    <span>${icon}</span>
+                    <span>${escapeHtml(title)}</span>
+                    <span class="info-item-severity ${severity}">${sevLabel}</span>
+                </div>
+                <div class="info-item-desc">${escapeHtml(desc)}</div>
+            </div>
+        `;
+    }).join('');
+}

@@ -231,4 +231,62 @@ header h1 { font-size: 18px; font-weight: 600; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.modal-content-wide {
+    width: 600px;
+    max-width: 95vw;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+}
+
+.info-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 8px;
+}
+
+.info-item {
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+}
+
+.info-item-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-item-severity {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.info-item-severity.critical { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+.info-item-severity.warning { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+
+.info-item-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
 .hidden { display: none !important; }
