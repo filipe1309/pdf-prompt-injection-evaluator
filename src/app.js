@@ -112,10 +112,17 @@ async function analyzePdfFile(path) {
     showLoading(true);
 
     try {
+        const startTime = Date.now();
         currentResult = await invoke('analyze_pdf', { path });
+        // Ensure loading is visible for at least 800ms for UX feedback
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 800) {
+            await new Promise(r => setTimeout(r, 800 - elapsed));
+        }
         showResults();
     } catch (err) {
-        alert('Error: ' + err);
+        console.error('[app] Analysis error:', err);
+        alert(t('error') + ': ' + err);
     } finally {
         showLoading(false);
     }
