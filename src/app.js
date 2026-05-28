@@ -89,8 +89,8 @@ dropZone.addEventListener('drop', (e) => {
 });
 
 // Tauri v2 drag-and-drop: listen for file drop events from the OS
-listen('tauri://drag-drop', async (event) => {
-    const paths = event.payload.paths;
+listen('tauri://file-drop', async (event) => {
+    const paths = event.payload;
     if (paths && paths.length > 0) {
         const pdfPath = paths.find(p => p.toLowerCase().endsWith('.pdf'));
         if (pdfPath) {
@@ -99,11 +99,11 @@ listen('tauri://drag-drop', async (event) => {
     }
 });
 
-listen('tauri://drag-over', () => {
+listen('tauri://file-drop-hover', () => {
     dropZone.classList.add('dragover');
 });
 
-listen('tauri://drag-leave', () => {
+listen('tauri://file-drop-cancelled', () => {
     dropZone.classList.remove('dragover');
 });
 
