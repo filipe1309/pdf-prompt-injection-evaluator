@@ -661,10 +661,19 @@ function displayLlmResult() {
     const cta = document.getElementById('cta-deep-analysis');
     if (cta) cta.remove();
 
-    // Update subtitle if in safe empty state
+    // Update safe empty state title, subtitle, and icon after LLM confirmation
+    const safeTitle = findingsList.querySelector('.safe-title');
+    if (safeTitle && currentLlmResult.classification !== 'injection') {
+        safeTitle.textContent = t('no_findings_title_confirmed');
+        safeTitle.className = 'safe-title confirmed';
+    }
     const safeSubtitle = findingsList.querySelector('.safe-subtitle');
     if (safeSubtitle && currentLlmResult.classification !== 'injection') {
         safeSubtitle.textContent = t('no_findings_subtitle_confirmed');
+    }
+    const safeIcon = findingsList.querySelector('.safe-icon svg');
+    if (safeIcon && currentLlmResult.classification !== 'injection') {
+        safeIcon.style.color = 'var(--accent-green)';
     }
 
     const isInjection = currentLlmResult.classification === 'injection';
