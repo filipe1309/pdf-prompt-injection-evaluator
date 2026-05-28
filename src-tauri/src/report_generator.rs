@@ -1,4 +1,4 @@
-use crate::models::{AnalysisResult, Finding, LlmClassification, Severity, Verdict};
+use crate::models::{AnalysisResult, DetectionType, Finding, LlmClassification, Severity, Verdict};
 use genpdf::Element as _;
 use genpdf::{elements, fonts, style, Alignment};
 use std::fs;
@@ -93,6 +93,31 @@ fn labels_for(language: &str) -> ReportLabels {
     }
 }
 
+fn translate_description(detection_type: &DetectionType, original: &str, language: &str) -> String {
+    if !language.starts_with("pt") {
+        return original.to_string();
+    }
+    match detection_type {
+        DetectionType::ZeroWidthChars => "Caracteres de largura zero detectados no texto".to_string(),
+        DetectionType::InvisibleText => "Texto invis\u{ed}vel detectado (modo de renderiza\u{e7}\u{e3}o oculto)".to_string(),
+        DetectionType::WhiteText => "Texto em branco (invis\u{ed}vel ao leitor) com instru\u{e7}\u{e3}o oculta detectada".to_string(),
+        DetectionType::MicroscopicFont => "Fonte microsc\u{f3}pica (<2pt) detectada \u{2014} texto ileg\u{ed}vel".to_string(),
+        DetectionType::TextOutsideBounds => "Texto posicionado fora dos limites vis\u{ed}veis da p\u{e1}gina".to_string(),
+        DetectionType::HiddenAnnotation => "Anota\u{e7}\u{e3}o oculta com conte\u{fa}do suspeito detectada".to_string(),
+        DetectionType::HiddenFormField => "Campo de formul\u{e1}rio oculto com instru\u{e7}\u{f5}es detectado".to_string(),
+        DetectionType::InstructionPattern => "Padr\u{e3}o de instru\u{e7}\u{e3}o de prompt injection detectado no texto".to_string(),
+        DetectionType::UnicodeTrick => "Truque Unicode (BiDi override) detectado".to_string(),
+        DetectionType::EmbeddedJavaScript => "JavaScript embutido detectado no documento PDF".to_string(),
+        DetectionType::MetadataInjection => "Inje\u{e7}\u{e3}o detectada em metadados do PDF".to_string(),
+        DetectionType::TokenFlooding => "Inunda\u{e7}\u{e3}o de tokens detectada (texto oculto repetitivo)".to_string(),
+        DetectionType::ForeignLanguageInstruction => "Instru\u{e7}\u{e3}o em idioma estrangeiro detectada".to_string(),
+        DetectionType::IncrementalUpdate => "Revis\u{e3}o incremental detectada \u{2014} conte\u{fa}do adicionado ap\u{f3}s estrutura original".to_string(),
+        DetectionType::ActualTextInjection => "Inje\u{e7}\u{e3}o via ActualText detectada".to_string(),
+        DetectionType::HiddenOcgLayer => "Camada OCG oculta com texto suspeito detectada".to_string(),
+        DetectionType::CitationPoisoning => "Cita\u{e7}\u{e3}o jur\u{ed}dica fabricada detectada".to_string(),
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ReportError {
     #[error("Failed to generate report: {0}")]
@@ -171,7 +196,7 @@ fn try_generate_pdf(
 
     // Separator line
     doc.push(elements::Paragraph::new(
-        "\u{2500}".repeat(80),
+        "_".repeat(80),
     ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(180, 180, 180))));
     doc.push(elements::Break::new(1.0));
 
@@ -229,7 +254,7 @@ fn try_generate_pdf(
         );
     } else {
         for (index, finding) in result.findings.iter().enumerate() {
-            push_finding_block(&mut doc, index + 1, finding, &labels);
+            push_finding_block(&mut doc, index + 1, finding, &labels, language);
         }
     }
     doc.push(elements::Break::new(1.0));
@@ -264,7 +289,7 @@ fn try_generate_pdf(
 
     // Footer separator
     doc.push(elements::Paragraph::new(
-        "\u{2500}".repeat(80),
+        "_".repeat(80),
     ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(180, 180, 180))));
     doc.push(elements::Break::new(0.3));
 
@@ -283,7 +308,7 @@ fn try_generate_pdf(
         .map_err(|e| ReportError::SaveError(e.to_string()))
 }
 
-fn push_finding_block(doc: &mut genpdf::Document, index: usize, finding: &Finding, labels: &ReportLabels) {
+fn push_finding_block(doc: &mut genpdf::Document, index: usize, finding: &Finding, labels: &ReportLabels, language: &str) {
     let (severity_text, severity_color) = match finding.severity {
         Severity::Critical => (labels.severity_critical, style::Color::Rgb(200, 40, 40)),
         Severity::Warning => (labels.severity_warning, style::Color::Rgb(200, 140, 0)),
@@ -297,15 +322,16 @@ fn push_finding_block(doc: &mut genpdf::Document, index: usize, finding: &Findin
         style::Style::new().bold().with_color(severity_color),
     );
     header.push_styled(
-        format!(" \u{2014} {} {}", labels.page_label, finding.page),
+        format!(" -- {} {}", labels.page_label, finding.page),
         style::Style::new().with_color(style::Color::Rgb(80, 80, 80)),
     );
     doc.push(header.styled(style::Style::new().with_font_size(10)));
 
-    // Description
+    // Description (translated)
+    let description = translate_description(&finding.detection_type, &finding.description, language);
     doc.push(
         elements::PaddedElement::new(
-            elements::Paragraph::new(&finding.description)
+            elements::Paragraph::new(description)
                 .styled(style::Style::new().with_font_size(9)),
             genpdf::Margins::trbl(1, 0, 1, 12),
         ),
@@ -321,7 +347,7 @@ fn push_finding_block(doc: &mut genpdf::Document, index: usize, finding: &Findin
         };
         doc.push(
             elements::PaddedElement::new(
-                elements::Paragraph::new(format!("\u{201c}{}\u{201d}", excerpt_display))
+                elements::Paragraph::new(format!("\"{}\"", excerpt_display))
                     .styled(style::Style::new().italic().with_font_size(8)
                         .with_color(style::Color::Rgb(80, 80, 80))),
                 genpdf::Margins::trbl(0, 0, 2, 12),
@@ -357,7 +383,7 @@ fn try_generate_batch_pdf(
     );
     doc.push(elements::Break::new(0.5));
     doc.push(elements::Paragraph::new(
-        "\u{2500}".repeat(80),
+        "_".repeat(80),
     ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(180, 180, 180))));
     doc.push(elements::Break::new(1.0));
 
@@ -398,13 +424,13 @@ fn try_generate_batch_pdf(
             );
         } else {
             for (idx, finding) in result.findings.iter().enumerate() {
-                push_finding_block(&mut doc, idx + 1, finding, &labels);
+                push_finding_block(&mut doc, idx + 1, finding, &labels, language);
             }
         }
 
         doc.push(elements::Break::new(0.5));
         doc.push(elements::Paragraph::new(
-            "\u{2500}".repeat(60),
+            "_".repeat(60),
         ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(200, 200, 200))));
         doc.push(elements::Break::new(0.5));
     }
@@ -455,7 +481,7 @@ fn generate_batch_text_report(
             content.push_str(&format!("   {}\n", labels.no_findings));
         } else {
             for (idx, finding) in result.findings.iter().enumerate() {
-                content.push_str(&format!("   {}\n", format_finding(idx + 1, finding, &labels)));
+                content.push_str(&format!("   {}\n", format_finding(idx + 1, finding, &labels, language)));
             }
         }
         content.push_str("\n---\n\n");
@@ -538,7 +564,7 @@ fn build_text_report(result: &AnalysisResult, llm_result: Option<&LlmClassificat
         content.push_str(&format!("{}\n\n", labels.no_findings));
     } else {
         for (index, finding) in result.findings.iter().enumerate() {
-            content.push_str(&format!("{}\n\n", format_finding(index + 1, finding, &labels)));
+            content.push_str(&format!("{}\n\n", format_finding(index + 1, finding, &labels, language)));
         }
     }
 
@@ -566,7 +592,7 @@ fn push_section_title(doc: &mut genpdf::Document, title: &str) {
     );
 }
 
-fn format_finding(index: usize, finding: &Finding, labels: &ReportLabels) -> String {
+fn format_finding(index: usize, finding: &Finding, labels: &ReportLabels, language: &str) -> String {
     let offset = finding
         .char_offset
         .map(|value| value.to_string())
@@ -581,12 +607,13 @@ fn format_finding(index: usize, finding: &Finding, labels: &ReportLabels) -> Str
         Severity::Warning => labels.severity_warning,
         Severity::Clean => labels.severity_clean,
     };
+    let description = translate_description(&finding.detection_type, &finding.description, language);
 
     format!(
         "{index}. {}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: {}",
         labels.severity_label, severity_text,
         labels.page_label, finding.page,
-        labels.description_label, finding.description,
+        labels.description_label, description,
         labels.excerpt_label, excerpt,
         labels.offset_label, offset,
     )
