@@ -222,7 +222,7 @@ fn analyze_content_streams(doc: &Document) -> (bool, bool, bool) {
                     if current_color_is_white {
                         has_white_text = true;
                     }
-                    if current_font_size < 2.0 && current_font_size > 0.0 {
+                    if current_font_size <= 3.0 && current_font_size > 0.0 {
                         has_microscopic_font = true;
                     }
                     if current_x < -10.0 || current_x > page_width + 10.0

@@ -54,7 +54,7 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
             page: 0,
             severity: Severity::Warning,
             detection_type: DetectionType::MicroscopicFont,
-            description: "Microscopic font size (<2pt) detected in document".to_string(),
+            description: "Microscopic font size (≤3pt) detected in document".to_string(),
             excerpt: "Text rendered with font size below readable threshold".to_string(),
             char_offset: None,
         });
