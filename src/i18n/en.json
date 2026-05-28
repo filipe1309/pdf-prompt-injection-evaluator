@@ -53,5 +53,6 @@
     "excerpt_InvisibleText": "Text present in extraction layer but not rendered visually (Tr 3)",
     "excerpt_MicroscopicFont": "Text rendered with font size below readable threshold",
     "excerpt_TextOutsideBounds": "Text coordinates exceed page MediaBox dimensions",
-    "excerpt_IncrementalUpdate": "Multiple %%EOF markers found — possible post-signature content injection"
+    "excerpt_IncrementalUpdate": "Multiple %%EOF markers found — possible post-signature content injection",
+    "excerpt_HiddenFormField": "AcroForm fields present — unusual in judicial documents"
 }

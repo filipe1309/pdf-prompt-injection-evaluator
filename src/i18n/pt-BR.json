@@ -53,5 +53,6 @@
     "excerpt_InvisibleText": "Texto presente na camada de extração mas não renderizado visualmente (Tr 3)",
     "excerpt_MicroscopicFont": "Texto renderizado com tamanho de fonte abaixo do limite legível",
     "excerpt_TextOutsideBounds": "Coordenadas do texto excedem as dimensões do MediaBox da página",
-    "excerpt_IncrementalUpdate": "Múltiplos marcadores %%EOF encontrados — possível injeção de conteúdo pós-assinatura"
+    "excerpt_IncrementalUpdate": "Múltiplos marcadores %%EOF encontrados — possível injeção de conteúdo pós-assinatura",
+    "excerpt_HiddenFormField": "Campos AcroForm presentes — incomum em documentos judiciais"
 }
