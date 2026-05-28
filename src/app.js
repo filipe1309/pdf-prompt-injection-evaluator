@@ -149,10 +149,15 @@ function showResults() {
         for (const finding of currentResult.findings) {
             const severity = finding.severity === 'Critical' ? 'critical' : 'warning';
             const icon = finding.severity === 'Critical' ? '🔴' : '🟡';
+            const typeTag = t('detection_type_' + finding.detection_type) || finding.detection_type;
+            const description = t('desc_' + finding.detection_type) || finding.description;
             const el = document.createElement('div');
             el.className = 'finding-item ' + severity;
             el.innerHTML =
-                '<div class="finding-header">' + icon + ' ' + t('page') + ' ' + finding.page + ': ' + escapeHtml(finding.description) + '</div>' +
+                '<div class="finding-header">' +
+                    '<span class="finding-tag tag-' + severity + '">' + escapeHtml(typeTag) + '</span> ' +
+                    icon + ' ' + t('page') + ' ' + finding.page + ': ' + escapeHtml(description) +
+                '</div>' +
                 (finding.excerpt ? '<div class="finding-excerpt">"' + escapeHtml(finding.excerpt) + '"</div>' : '');
             findingsList.appendChild(el);
         }

@@ -127,6 +127,20 @@ header h1 { font-size: 18px; font-weight: 600; }
 .finding-item .finding-header { font-weight: 600; margin-bottom: 4px; }
 .finding-item .finding-excerpt { color: var(--text-muted); font-style: italic; font-size: 12px; }
 
+.finding-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.tag-critical { background: rgba(244, 67, 54, 0.2); color: #f44336; border: 1px solid rgba(244, 67, 54, 0.4); }
+.tag-warning { background: rgba(255, 152, 0, 0.2); color: #ff9800; border: 1px solid rgba(255, 152, 0, 0.4); }
+
 #action-buttons {
     display: flex;
     flex-direction: column;
