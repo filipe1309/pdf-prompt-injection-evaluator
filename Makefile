@@ -1,4 +1,7 @@
-.PHONY: help dev build release test lint fmt clean install-deps check
+.PHONY: help dev build release release-mac release-win test lint fmt clean install-deps check
+
+# Ensure Rust toolchain is on PATH
+export PATH := $(HOME)/.cargo/bin:$(HOME)/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$(PATH)
 
 # Default target
 help: ## Show this help message
