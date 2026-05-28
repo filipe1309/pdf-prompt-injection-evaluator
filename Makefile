@@ -22,12 +22,22 @@ build: ## Build the Rust backend (debug)
 
 release: ## Build production release bundle for current platform
 	$(CARGO) tauri build
+	@mkdir -p dist
+	@cp -r src-tauri/target/release/bundle/* dist/ 2>/dev/null || true
+	@echo "Release artifacts copied to dist/"
 
 release-mac: ## Build macOS bundle (.app + .dmg) for Apple Silicon
 	$(CARGO) tauri build --target aarch64-apple-darwin
+	@mkdir -p dist
+	@cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist/ 2>/dev/null || true
+	@cp -r src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app dist/ 2>/dev/null || true
+	@echo "macOS artifacts copied to dist/"
 
 release-win: ## Build Windows installer (.exe NSIS)
 	$(CARGO) tauri build --target x86_64-pc-windows-gnu
+	@mkdir -p dist
+	@cp src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*-setup.exe dist/ 2>/dev/null || true
+	@echo "Windows installer copied to dist/"
 
 release-win-portable: ## Build Windows portable .exe (no installer)
 	$(CARGO) tauri build --target x86_64-pc-windows-gnu
