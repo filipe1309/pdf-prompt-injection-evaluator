@@ -142,28 +142,29 @@ fn detect_zero_width_characters(page: u32, text: &str, findings: &mut Vec<Findin
         let first_pos = zero_width_positions[0];
         let count = zero_width_positions.len();
 
-        // Extract text adjacent to zero-width chars (the "hidden" content)
-        // Show the text with zero-width chars stripped to reveal what's being smuggled
-        let hidden_text: String = text
-            .chars()
-            .filter(|ch| !zero_width_chars.contains(ch))
-            .collect();
-        // Show a window around the first occurrence
-        let clean_excerpt = if hidden_text.len() > 80 {
-            format!("{}...", &hidden_text[..80])
-        } else {
-            hidden_text
-        };
+        // Extract segments around zero-width chars to show affected regions
+        // Show text with zero-width chars replaced by visible markers [ZW]
+        let marked: String = text.chars().map(|ch| {
+            if zero_width_chars.contains(&ch) {
+                '·'
+            } else {
+                ch
+            }
+        }).collect();
+
+        // Find the region with the most zero-width concentration
+        // and show it with markers
+        let start = if first_pos > 20 { first_pos - 20 } else { 0 };
+        let end = (first_pos + 200).min(marked.len());
+        let region: String = marked.chars().skip(start).take(end - start).collect();
+        let excerpt = region.trim().to_string();
 
         findings.push(Finding {
             page,
             severity: Severity::Critical,
             detection_type: DetectionType::ZeroWidthChars,
-            description: format!(
-                "Zero-width or invisible characters detected in page text ({} occurrences)",
-                count
-            ),
-            excerpt: format!("Hidden content: \"{}\"", clean_excerpt.trim()),
+            description: format!("{} ({}x)", "Zero-width invisible characters detected", count),
+            excerpt,
             char_offset: Some(first_pos),
         });
     }

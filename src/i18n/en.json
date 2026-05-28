@@ -32,7 +32,7 @@
     "detection_type_MetadataInjection": "Metadata Injection",
     "detection_type_TokenFlooding": "Token Flooding",
     "detection_type_ForeignLanguageInstruction": "Foreign Language Instruction",
-    "desc_ZeroWidthChars": "Zero-width invisible character detected in page text",
+    "desc_ZeroWidthChars": "Zero-width invisible characters detected in text — positions marked with · in excerpt below",
     "desc_InvisibleText": "Invisible text detected (white font or microscopic size)",
     "desc_WhiteText": "White text (invisible to reader) with hidden instruction detected",
     "desc_MicroscopicFont": "Microscopic font size (<2pt) detected — unreadable to human eye",
