@@ -36,6 +36,7 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
         detect_instruction_patterns(*page, text, &en_regex, Severity::Warning, DetectionType::ForeignLanguageInstruction, "Suspicious instruction pattern detected in page text", &mut findings);
 
         detect_token_flooding(*page, text, &mut findings);
+        detect_citation_poisoning(*page, text, &mut findings);
     }
 
     // Structural signals as standalone findings
@@ -319,6 +320,24 @@ fn detect_token_flooding(page: u32, text: &str, findings: &mut Vec<Finding>) {
             description: "Token flooding detected: excessive repetition of favorable legal terms".to_string(),
             excerpt: format!("{} repetitions of favorable terms detected", total_hits),
             char_offset: None,
+        });
+    }
+}
+
+fn detect_citation_poisoning(page: u32, text: &str, findings: &mut Vec<Finding>) {
+    // Detect fabricated legal citations (fake jurisprudence, súmulas, OJs)
+    let citation_regex = Regex::new(
+        r"(?i)(s[uú]mula\s+\d{3,4}/(TST|STF|STJ)|OJ-SDI\d?-\d{3,4}|PRECEDENTE\s+VINCULANTE|jurisprud[eê]ncia\s+(consolidada|un[aâ]nime|pac[ií]fica)|RR-\d{4,}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})"
+    ).expect("valid citation regex");
+
+    if let Some(matched) = citation_regex.find(text) {
+        findings.push(Finding {
+            page,
+            severity: Severity::Warning,
+            detection_type: DetectionType::CitationPoisoning,
+            description: "Fabricated legal citation detected — fake jurisprudence to mislead AI analysis".to_string(),
+            excerpt: extract_context(text, matched.start(), 80),
+            char_offset: Some(matched.start()),
         });
     }
 }

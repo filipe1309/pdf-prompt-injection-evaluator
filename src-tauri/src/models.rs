@@ -25,6 +25,7 @@ pub enum DetectionType {
     IncrementalUpdate,
     ActualTextInjection,
     HiddenOcgLayer,
+    CitationPoisoning,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
