@@ -75,6 +75,17 @@ async fn export_report(
         .map_err(|e| format!("Report error: {}", e))
 }
 
+#[tauri::command]
+async fn export_batch_report(
+    results: Vec<AnalysisResult>,
+    output_path: String,
+) -> Result<(), String> {
+    let path = PathBuf::from(output_path);
+    let cfg = config::load_config();
+    report_generator::generate_batch_report(&results, &path, &cfg.language)
+        .map_err(|e| format!("Report error: {}", e))
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -87,6 +98,7 @@ fn main() {
             get_config,
             save_settings,
             export_report,
+            export_batch_report,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

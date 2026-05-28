@@ -362,28 +362,25 @@ exportBtn.addEventListener('click', async () => {
         return;
     }
 
-    // Queue mode: export all completed results
+    // Queue mode: export single consolidated report
     const completed = fileQueue.filter(f => f.status === 'done');
     if (completed.length === 0) return;
 
-    for (const item of completed) {
-        const outputPath = await save({
-            filters: [{ name: 'PDF', extensions: ['pdf'] }],
-            defaultPath: 'report-' + item.name,
-        });
-        if (!outputPath) break;
+    const outputPath = await save({
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        defaultPath: 'batch-report.pdf',
+    });
+    if (outputPath) {
         try {
-            await invoke('export_report', {
-                result: item.result,
-                llmResult: null,
+            await invoke('export_batch_report', {
+                results: completed.map(f => f.result),
                 outputPath,
             });
+            alert(t('export_success'));
         } catch (err) {
-            alert('Export error (' + item.name + '): ' + err);
-            break;
+            alert('Export error: ' + err);
         }
     }
-    alert(t('export_success'));
 });
 
 // New File

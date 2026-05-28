@@ -119,6 +119,23 @@ pub fn generate_report(
     }
 }
 
+pub fn generate_batch_report(
+    results: &[AnalysisResult],
+    output_path: &Path,
+    language: &str,
+) -> Result<(), ReportError> {
+    ensure_parent_dir(output_path)?;
+
+    match try_generate_batch_pdf(results, output_path, language) {
+        Ok(()) => Ok(()),
+        Err(pdf_error) => generate_batch_text_report(results, output_path, language).map_err(|text_error| {
+            ReportError::GenerationError(format!(
+                "PDF generation failed ({pdf_error}); text fallback failed ({text_error})"
+            ))
+        }),
+    }
+}
+
 fn ensure_parent_dir(output_path: &Path) -> Result<(), ReportError> {
     if let Some(parent) = output_path.parent() {
         fs::create_dir_all(parent).map_err(|e| ReportError::SaveError(e.to_string()))?;
@@ -313,6 +330,142 @@ fn push_finding_block(doc: &mut genpdf::Document, index: usize, finding: &Findin
     }
 
     doc.push(elements::Break::new(0.4));
+}
+
+fn try_generate_batch_pdf(
+    results: &[AnalysisResult],
+    output_path: &Path,
+    language: &str,
+) -> Result<(), ReportError> {
+    let labels = labels_for(language);
+    let font_family = load_font_family()?;
+
+    let mut doc = genpdf::Document::new(font_family);
+    doc.set_title(labels.title);
+    doc.set_minimal_conformance();
+    doc.set_line_spacing(1.4);
+
+    let mut decorator = genpdf::SimplePageDecorator::new();
+    decorator.set_margins(20);
+    doc.set_page_decorator(decorator);
+
+    // Title
+    doc.push(
+        elements::Paragraph::new(labels.title)
+            .aligned(Alignment::Center)
+            .styled(style::Style::new().bold().with_font_size(16)),
+    );
+    doc.push(elements::Break::new(0.5));
+    doc.push(elements::Paragraph::new(
+        "\u{2500}".repeat(80),
+    ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(180, 180, 180))));
+    doc.push(elements::Break::new(1.0));
+
+    // Summary table
+    let safe_count = results.iter().filter(|r| r.verdict == Verdict::Safe).count();
+    let unsafe_count = results.len() - safe_count;
+    doc.push(elements::Paragraph::new(format!(
+        "{}: {} | {}: {} | {}: {}",
+        "Total", results.len(),
+        labels.verdict_safe, safe_count,
+        labels.verdict_unsafe, unsafe_count,
+    )).styled(style::Style::new().bold().with_font_size(10)));
+    doc.push(elements::Break::new(1.0));
+
+    // Each file result
+    for (i, result) in results.iter().enumerate() {
+        push_section_title(&mut doc, &format!("{}. {}", i + 1, result.filename));
+        doc.push(elements::Break::new(0.2));
+
+        let (verdict_text, verdict_color) = match result.verdict {
+            Verdict::Safe => (labels.verdict_safe, style::Color::Rgb(34, 139, 34)),
+            Verdict::Unsafe => (labels.verdict_unsafe, style::Color::Rgb(200, 40, 40)),
+        };
+        let verdict_icon = match result.verdict {
+            Verdict::Safe => "\u{2713} ",
+            Verdict::Unsafe => "\u{2717} ",
+        };
+        doc.push(
+            elements::Paragraph::new(format!("{}{}", verdict_icon, verdict_text))
+                .styled(style::Style::new().bold().with_font_size(11).with_color(verdict_color)),
+        );
+
+        if result.findings.is_empty() {
+            doc.push(
+                elements::Paragraph::new(labels.no_findings)
+                    .styled(style::Style::new().italic().with_font_size(9)
+                        .with_color(style::Color::Rgb(100, 100, 100))),
+            );
+        } else {
+            for (idx, finding) in result.findings.iter().enumerate() {
+                push_finding_block(&mut doc, idx + 1, finding, &labels);
+            }
+        }
+
+        doc.push(elements::Break::new(0.5));
+        doc.push(elements::Paragraph::new(
+            "\u{2500}".repeat(60),
+        ).styled(style::Style::new().with_font_size(6).with_color(style::Color::Rgb(200, 200, 200))));
+        doc.push(elements::Break::new(0.5));
+    }
+
+    // Footer
+    doc.push(
+        elements::Paragraph::new(format!("{}: {}", labels.version, env!("CARGO_PKG_VERSION")))
+            .styled(style::Style::new().with_font_size(8).with_color(style::Color::Rgb(120, 120, 120))),
+    );
+    doc.push(
+        elements::Paragraph::new(labels.disclaimer)
+            .styled(style::Style::new().italic().with_font_size(8)
+                .with_color(style::Color::Rgb(120, 120, 120))),
+    );
+
+    doc.render_to_file(output_path)
+        .map_err(|e| ReportError::SaveError(e.to_string()))
+}
+
+fn generate_batch_text_report(
+    results: &[AnalysisResult],
+    output_path: &Path,
+    language: &str,
+) -> Result<(), ReportError> {
+    let labels = labels_for(language);
+    let mut content = String::new();
+
+    content.push_str(labels.title);
+    content.push_str("\n================================\n\n");
+
+    let safe_count = results.iter().filter(|r| r.verdict == Verdict::Safe).count();
+    let unsafe_count = results.len() - safe_count;
+    content.push_str(&format!(
+        "Total: {} | {}: {} | {}: {}\n\n",
+        results.len(), labels.verdict_safe, safe_count, labels.verdict_unsafe, unsafe_count
+    ));
+
+    for (i, result) in results.iter().enumerate() {
+        content.push_str(&format!("{}. {}\n", i + 1, result.filename));
+        content.push_str(&format!("   {}: {}\n", labels.hash, result.file_hash));
+        let verdict_text = match result.verdict {
+            Verdict::Safe => labels.verdict_safe,
+            Verdict::Unsafe => labels.verdict_unsafe,
+        };
+        content.push_str(&format!("   {}: {}\n", labels.verdict, verdict_text));
+
+        if result.findings.is_empty() {
+            content.push_str(&format!("   {}\n", labels.no_findings));
+        } else {
+            for (idx, finding) in result.findings.iter().enumerate() {
+                content.push_str(&format!("   {}\n", format_finding(idx + 1, finding, &labels)));
+            }
+        }
+        content.push_str("\n---\n\n");
+    }
+
+    content.push_str(&format!("{}: {}\n", labels.version, env!("CARGO_PKG_VERSION")));
+    content.push_str(&format!("{}\n", labels.disclaimer));
+
+    fs::write(output_path, content)
+        .map_err(|e| ReportError::SaveError(e.to_string()))
 }
 
 fn load_font_family() -> Result<fonts::FontFamily<fonts::FontData>, ReportError> {
