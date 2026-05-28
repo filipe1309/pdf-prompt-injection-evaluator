@@ -17,6 +17,8 @@
     "analyzing": "Analyzing...",
     "no_findings": "No findings.",
     "export_success": "Report exported successfully!",
+    "queue_title": "Analysis Queue",
+    "findings_count": "findings",
     "page": "Page",
     "error": "Error",
     "detection_type_ZeroWidthChars": "Invisible Characters",

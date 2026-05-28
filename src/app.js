@@ -76,9 +76,13 @@ const languageSelect = document.getElementById('language-select');
 async function selectFile() {
     const selected = await open({
         filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        multiple: true,
     });
     if (selected) {
-        await analyzePdfFile(selected);
+        const files = Array.isArray(selected) ? selected : [selected];
+        if (files.length > 0) {
+            await processFileQueue(files);
+        }
     }
 }
 
@@ -98,9 +102,9 @@ dropZone.addEventListener('drop', (e) => {
 listen('tauri://drag-drop', async (event) => {
     const paths = event.payload?.paths;
     if (paths && paths.length > 0) {
-        const pdfPath = paths.find(p => p.toLowerCase().endsWith('.pdf'));
-        if (pdfPath) {
-            await analyzePdfFile(pdfPath);
+        const pdfPaths = paths.filter(p => p.toLowerCase().endsWith('.pdf'));
+        if (pdfPaths.length > 0) {
+            await processFileQueue(pdfPaths);
         }
     }
 });
@@ -112,6 +116,92 @@ listen('tauri://drag-enter', () => {
 listen('tauri://drag-leave', () => {
     dropZone.classList.remove('dragover');
 });
+
+// Multi-file queue
+let fileQueue = [];
+let queueResults = [];
+
+async function processFileQueue(paths) {
+    if (paths.length === 1) {
+        await analyzePdfFile(paths[0]);
+        return;
+    }
+
+    fileQueue = paths.map(p => ({ path: p, name: p.split('/').pop().split('\\').pop(), status: 'pending', result: null }));
+    queueResults = [];
+    showQueueView();
+
+    for (let i = 0; i < fileQueue.length; i++) {
+        fileQueue[i].status = 'processing';
+        updateQueueUI();
+        try {
+            const result = await invoke('analyze_pdf', { path: fileQueue[i].path });
+            fileQueue[i].status = 'done';
+            fileQueue[i].result = result;
+            queueResults.push({ path: fileQueue[i].path, result });
+        } catch (err) {
+            fileQueue[i].status = 'error';
+            fileQueue[i].error = err;
+        }
+        updateQueueUI();
+    }
+}
+
+function showQueueView() {
+    dropZoneContainer.classList.add('hidden');
+    analysisView.classList.add('hidden');
+    headerActions.classList.remove('hidden');
+
+    let queueContainer = document.getElementById('queue-view');
+    if (!queueContainer) {
+        queueContainer = document.createElement('main');
+        queueContainer.id = 'queue-view';
+        queueContainer.className = 'queue-view';
+        document.getElementById('app').insertBefore(queueContainer, document.getElementById('loading-overlay'));
+    }
+    queueContainer.classList.remove('hidden');
+    updateQueueUI();
+}
+
+function updateQueueUI() {
+    const container = document.getElementById('queue-view');
+    if (!container) return;
+
+    const doneCount = fileQueue.filter(f => f.status === 'done').length;
+    const total = fileQueue.length;
+    const progressPct = Math.round((doneCount / total) * 100);
+
+    container.innerHTML =
+        '<div class="queue-header">' +
+            '<h2>' + t('queue_title') + ' (' + doneCount + '/' + total + ')</h2>' +
+            '<div class="queue-progress-bar"><div class="queue-progress-fill" style="width:' + progressPct + '%"></div></div>' +
+        '</div>' +
+        '<div class="queue-list">' +
+        fileQueue.map((f, i) => {
+            const icon = f.status === 'done' ? (f.result.verdict === 'Safe' ? '✅' : '🚨')
+                : f.status === 'processing' ? '⏳'
+                : f.status === 'error' ? '❌' : '⏸️';
+            const verdictClass = f.status === 'done' ? (f.result.verdict === 'Safe' ? 'queue-safe' : 'queue-unsafe') : '';
+            const clickable = f.status === 'done' ? ' data-queue-index="' + i + '" class="queue-item clickable ' + verdictClass + '"' : ' class="queue-item ' + verdictClass + '"';
+            const findings = f.status === 'done' ? ' — ' + f.result.findings.length + ' ' + t('findings_count') : '';
+            const errorMsg = f.status === 'error' ? ' — ' + f.error : '';
+            return '<div' + clickable + '>' + icon + ' ' + escapeHtml(f.name) + findings + errorMsg + '</div>';
+        }).join('') +
+        '</div>';
+
+    // Click handlers to view individual results
+    container.querySelectorAll('[data-queue-index]').forEach(el => {
+        el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.queueIndex);
+            const item = fileQueue[idx];
+            currentResult = item.result;
+            currentFilePath = item.path;
+            currentLlmResult = null;
+            document.getElementById('queue-view').classList.add('hidden');
+            showResults();
+        });
+    });
+}
 
 async function analyzePdfFile(path) {
     currentFilePath = path;
@@ -254,8 +344,12 @@ newFileBtn.addEventListener('click', () => {
     currentResult = null;
     currentLlmResult = null;
     currentFilePath = null;
+    fileQueue = [];
+    queueResults = [];
     analysisView.classList.add('hidden');
     headerActions.classList.add('hidden');
+    const queueView = document.getElementById('queue-view');
+    if (queueView) queueView.classList.add('hidden');
     dropZoneContainer.classList.remove('hidden');
 });
 

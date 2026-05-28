@@ -17,6 +17,8 @@
     "analyzing": "Analisando...",
     "no_findings": "Nenhuma ocorrência encontrada.",
     "export_success": "Relatório exportado com sucesso!",
+    "queue_title": "Fila de Análise",
+    "findings_count": "achados",
     "page": "Página",
     "error": "Erro",
     "detection_type_ZeroWidthChars": "Caracteres Invisíveis",
