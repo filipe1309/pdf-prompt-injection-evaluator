@@ -24,7 +24,7 @@ pub struct PdfContent {
     pub form_field_values: Vec<String>,
     pub has_incremental_update: bool,
     pub actual_text_values: Vec<String>,
-    pub has_hidden_ocg: bool,
+    pub ocg_hidden_texts: Vec<String>,
 }
 
 pub struct AnnotationInfo {
@@ -49,7 +49,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
     let (has_white_text, has_invisible_text, has_microscopic_font, has_text_outside_bounds) = analyze_content_streams(&doc);
     let (has_acroform_fields, form_field_values) = extract_acroform_fields(&doc);
     let actual_text_values = extract_actual_text(&doc);
-    let has_hidden_ocg = detect_hidden_ocg(&doc);
+    let ocg_hidden_texts = extract_ocg_hidden_texts(&doc);
 
     Ok(PdfContent {
         pages,
@@ -64,7 +64,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         form_field_values,
         has_incremental_update,
         actual_text_values,
-        has_hidden_ocg,
+        ocg_hidden_texts,
     })
 }
 
@@ -360,38 +360,43 @@ fn extract_acroform_fields(doc: &Document) -> (bool, Vec<String>) {
 
 /// Detects Optional Content Groups (OCG) that are set to OFF.
 /// Hidden OCG layers are not rendered but their text IS extracted by parsers.
-fn detect_hidden_ocg(doc: &Document) -> bool {
-    // Look for /OCProperties in catalog with /OFF array containing OCG references
+fn extract_ocg_hidden_texts(doc: &Document) -> Vec<String> {
+    // Find OCG groups that are OFF in the default config
     let catalog = match doc.trailer.get(b"Root") {
         Ok(root) => match doc.dereference(root) {
             Ok((_, obj)) => match obj.as_dict() {
                 Ok(dict) => dict.clone(),
-                Err(_) => return false,
+                Err(_) => return vec![],
             },
-            Err(_) => return false,
+            Err(_) => return vec![],
         },
-        Err(_) => return false,
+        Err(_) => return vec![],
     };
 
     let oc_props = match catalog.get(b"OCProperties") {
         Ok(obj) => match doc.dereference(obj) {
             Ok((_, obj)) => match obj.as_dict() {
                 Ok(dict) => dict.clone(),
-                Err(_) => return false,
+                Err(_) => return vec![],
             },
-            Err(_) => return false,
+            Err(_) => return vec![],
         },
-        Err(_) => return false,
+        Err(_) => return vec![],
     };
 
-    // Check /D (default viewing config) for /OFF array
+    // Collect OFF OCG object IDs
+    let mut off_ocg_ids: Vec<lopdf::ObjectId> = Vec::new();
     if let Ok(d) = oc_props.get(b"D") {
         if let Ok((_, d_obj)) = doc.dereference(d) {
             if let Ok(d_dict) = d_obj.as_dict() {
                 if let Ok(off) = d_dict.get(b"OFF") {
                     if let Ok((_, off_obj)) = doc.dereference(off) {
                         if let Ok(arr) = off_obj.as_array() {
-                            return !arr.is_empty();
+                            for item in arr {
+                                if let Ok(reference) = item.as_reference() {
+                                    off_ocg_ids.push(reference);
+                                }
+                            }
                         }
                     }
                 }
@@ -399,7 +404,80 @@ fn detect_hidden_ocg(doc: &Document) -> bool {
         }
     }
 
-    false
+    if off_ocg_ids.is_empty() {
+        return vec![];
+    }
+
+    // Find XObjects (or streams) with /OC referencing an OFF OCG, extract their text
+    let mut texts = Vec::new();
+    for (_obj_id, obj) in doc.objects.iter() {
+        if let Ok(dict) = obj.as_dict().or_else(|_| {
+            if let Ok(stream) = obj.as_stream() {
+                Ok(&stream.dict)
+            } else {
+                Err(lopdf::Error::Type)
+            }
+        }) {
+            if let Ok(oc_ref) = dict.get(b"OC") {
+                let oc_id = match oc_ref.as_reference() {
+                    Ok(id) => id,
+                    Err(_) => continue,
+                };
+                if off_ocg_ids.contains(&oc_id) {
+                    // This object is hidden - try to extract text from its stream
+                    if let Ok(stream) = obj.as_stream() {
+                        if let Ok(content) = stream.decompressed_content() {
+                            let text = extract_text_from_content_bytes(&content);
+                            if !text.is_empty() {
+                                texts.push(text);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Also look inside stream objects directly
+    for (_obj_id, obj) in doc.objects.iter() {
+        if let Ok(stream) = obj.as_stream() {
+            if let Ok(oc_ref) = stream.dict.get(b"OC") {
+                let oc_id = match oc_ref.as_reference() {
+                    Ok(id) => id,
+                    Err(_) => continue,
+                };
+                if off_ocg_ids.contains(&oc_id) {
+                    if let Ok(content) = stream.decompressed_content() {
+                        let text = extract_text_from_content_bytes(&content);
+                        if !text.is_empty() && !texts.contains(&text) {
+                            texts.push(text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    texts
+}
+
+/// Extract text strings from raw PDF content stream bytes (parenthesized strings after Tj/TJ)
+fn extract_text_from_content_bytes(content: &[u8]) -> String {
+    let content_str = String::from_utf8_lossy(content);
+    let mut result = String::new();
+
+    // Match parenthesized strings: (text) Tj or [(text)] TJ
+    let re = regex::Regex::new(r"\(([^)]*)\)\s*Tj").unwrap();
+    for cap in re.captures_iter(&content_str) {
+        if !result.is_empty() {
+            result.push(' ');
+        }
+        // Unescape basic PDF string escapes
+        let s = cap[1].replace("\\(", "(").replace("\\)", ")").replace("\\\\", "\\");
+        result.push_str(&s);
+    }
+
+    result
 }
 
 /// Extracts /ActualText values from StructTreeRoot elements.

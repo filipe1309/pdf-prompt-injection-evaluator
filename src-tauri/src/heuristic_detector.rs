@@ -11,7 +11,7 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
     // Determine primary detection type based on PDF structure signals
     let primary_type = if content.has_incremental_update {
         DetectionType::IncrementalUpdate
-    } else if content.has_hidden_ocg {
+    } else if !content.ocg_hidden_texts.is_empty() {
         DetectionType::HiddenOcgLayer
     } else if content.has_white_text {
         DetectionType::WhiteText
@@ -163,6 +163,21 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
                 severity: Severity::Critical,
                 detection_type: DetectionType::ActualTextInjection,
                 description: "Instruction pattern found in /ActualText accessibility attribute".to_string(),
+                excerpt: extract_context(value, matched.start(), 80),
+                char_offset: Some(matched.start()),
+            });
+        }
+    }
+
+    // Check OCG hidden layer texts for injection patterns
+    for value in &content.ocg_hidden_texts {
+        let first_match = metadata_regex.find(value);
+        if let Some(matched) = first_match {
+            findings.push(Finding {
+                page: 1,
+                severity: Severity::Warning,
+                detection_type: DetectionType::HiddenOcgLayer,
+                description: "Instruction pattern found in hidden OCG layer content".to_string(),
                 excerpt: extract_context(value, matched.start(), 80),
                 char_offset: Some(matched.start()),
             });
@@ -367,7 +382,7 @@ mod tests {
             form_field_values: Vec::new(),
             has_incremental_update: false,
             actual_text_values: Vec::new(),
-            has_hidden_ocg: false,
+            ocg_hidden_texts: Vec::new(),
         }
     }
 
@@ -505,5 +520,21 @@ mod integration_tests {
             println!("  {:?}", f);
         }
         assert!(!findings.is_empty(), "Should detect injection in sample 01");
+    }
+
+    #[test]
+    fn test_detects_sample_10_ocg_off() {
+        let path = Path::new("../samples/vectors/10_camada_ocg_off.pdf");
+        if !path.exists() { return; }
+        let content = pdf_parser::parse_pdf(path).unwrap();
+        println!("OCG hidden texts: {:?}", content.ocg_hidden_texts);
+        let findings = detect(&content);
+        println!("Findings: {:?}", findings.len());
+        for f in &findings {
+            println!("  {:?}", f);
+        }
+        assert!(!content.ocg_hidden_texts.is_empty(), "Should extract OCG hidden texts");
+        assert!(findings.iter().any(|f| f.detection_type == DetectionType::HiddenOcgLayer),
+            "Should detect HiddenOcgLayer");
     }
 }
