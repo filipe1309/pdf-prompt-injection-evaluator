@@ -23,6 +23,7 @@ pub enum DetectionType {
     TokenFlooding,
     ForeignLanguageInstruction,
     IncrementalUpdate,
+    ActualTextInjection,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

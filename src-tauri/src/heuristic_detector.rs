@@ -152,6 +152,20 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
         detect_annotation_injection(annotation, &metadata_regex, &mut findings);
     }
 
+    // Check /ActualText values for injection patterns
+    for value in &content.actual_text_values {
+        for matched in metadata_regex.find_iter(value) {
+            findings.push(Finding {
+                page: 0,
+                severity: Severity::Critical,
+                detection_type: DetectionType::ActualTextInjection,
+                description: "Instruction pattern found in /ActualText accessibility attribute".to_string(),
+                excerpt: extract_context(value, matched.start(), 80),
+                char_offset: Some(matched.start()),
+            });
+        }
+    }
+
     findings
 }
 
@@ -349,6 +363,7 @@ mod tests {
             has_acroform_fields: false,
             form_field_values: Vec::new(),
             has_incremental_update: false,
+            actual_text_values: Vec::new(),
         }
     }
 

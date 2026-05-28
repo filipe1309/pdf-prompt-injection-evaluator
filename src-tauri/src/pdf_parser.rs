@@ -23,6 +23,7 @@ pub struct PdfContent {
     pub has_acroform_fields: bool,
     pub form_field_values: Vec<String>,
     pub has_incremental_update: bool,
+    pub actual_text_values: Vec<String>,
 }
 
 pub struct AnnotationInfo {
@@ -46,6 +47,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
 
     let (has_white_text, has_invisible_text, has_microscopic_font, has_text_outside_bounds) = analyze_content_streams(&doc);
     let (has_acroform_fields, form_field_values) = extract_acroform_fields(&doc);
+    let actual_text_values = extract_actual_text(&doc);
 
     Ok(PdfContent {
         pages,
@@ -59,6 +61,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         has_acroform_fields,
         form_field_values,
         has_incremental_update,
+        actual_text_values,
     })
 }
 
@@ -334,6 +337,59 @@ fn extract_acroform_fields(doc: &Document) -> (bool, Vec<String>) {
 
     let has_fields = !fields.is_empty();
     (has_fields, values)
+}
+
+/// Extracts /ActualText values from StructTreeRoot elements.
+/// These accessibility attributes can contain text that differs from visible content,
+/// enabling injection attacks where extractors read /ActualText instead of rendered text.
+fn extract_actual_text(doc: &Document) -> Vec<String> {
+    let mut values = Vec::new();
+
+    for (_, object) in &doc.objects {
+        collect_actual_text(object, doc, &mut values);
+    }
+
+    values
+}
+
+fn collect_actual_text(object: &Object, doc: &Document, values: &mut Vec<String>) {
+    match object {
+        Object::Dictionary(dict) => {
+            if let Ok(actual_text) = dict.get(b"ActualText") {
+                if let Ok(text) = actual_text.as_string() {
+                    let s = text.into_owned();
+                    if !s.trim().is_empty() {
+                        values.push(s);
+                    }
+                }
+            }
+            // Also check /Alt (alternative text) which can be similarly abused
+            if let Ok(alt) = dict.get(b"Alt") {
+                if let Ok(text) = alt.as_string() {
+                    let s = text.into_owned();
+                    if !s.trim().is_empty() {
+                        values.push(s);
+                    }
+                }
+            }
+        }
+        Object::Stream(stream) => {
+            if let Ok(actual_text) = stream.dict.get(b"ActualText") {
+                if let Ok(text) = actual_text.as_string() {
+                    let s = text.into_owned();
+                    if !s.trim().is_empty() {
+                        values.push(s);
+                    }
+                }
+            }
+        }
+        Object::Reference(id) => {
+            if let Ok(obj) = doc.get_object(*id) {
+                collect_actual_text(obj, doc, values);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn object_contains_javascript(object: &Object) -> bool {
