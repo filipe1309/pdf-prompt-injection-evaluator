@@ -5,6 +5,18 @@ const { listen } = window.__TAURI__.event;
 const { open, save } = window.__TAURI__.dialog;
 const { getVersion } = window.__TAURI__.app;
 
+// Lucide icon SVGs (inline, 16x16)
+const ICON = {
+    shieldCheck: '<svg class="icon icon-safe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>',
+    shieldAlert: '<svg class="icon icon-unsafe" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',
+    circleAlert: '<svg class="icon icon-critical" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',
+    triangleAlert: '<svg class="icon icon-warning" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    bot: '<svg class="icon icon-bot" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>',
+    clock: '<svg class="icon icon-pending" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    loader: '<svg class="icon icon-processing" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>',
+    xCircle: '<svg class="icon icon-error" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
+};
+
 let translations = {};
 
 async function loadTranslations() {
@@ -190,13 +202,13 @@ function updateQueueUI() {
         '</div>' +
         '<div class="queue-list">' +
         fileQueue.map((f, i) => {
-            const icon = f.status === 'done' ? (f.result.verdict === 'Safe' ? '✅' : '🚨')
-                : f.status === 'processing' ? '⏳'
-                : f.status === 'error' ? '❌' : '⏸️';
+            const icon = f.status === 'done' ? (f.result.verdict === 'Safe' ? ICON.shieldCheck : ICON.shieldAlert)
+                : f.status === 'processing' ? ICON.loader
+                : f.status === 'error' ? ICON.xCircle : ICON.clock;
             const verdictClass = f.status === 'done' ? (f.result.verdict === 'Safe' ? 'queue-safe' : 'queue-unsafe') : '';
             const clickable = f.status === 'done' ? ' data-queue-index="' + i + '" class="queue-item clickable ' + verdictClass + '"' : ' class="queue-item ' + verdictClass + '"';
             const findings = f.status === 'done' ? ' — ' + f.result.findings.length + ' ' + t('findings_count') : '';
-            const llmInfo = (f.status === 'done' && f.llmResult) ? ' — 🤖 ' + (f.llmResult.classification === 'injection' ? t('llm_class_injection') : t('llm_class_safe')) + ' (' + f.llmResult.confidence + '%)' : '';
+            const llmInfo = (f.status === 'done' && f.llmResult) ? ' — ' + ICON.bot + ' ' + (f.llmResult.classification === 'injection' ? t('llm_class_injection') : t('llm_class_safe')) + ' (' + f.llmResult.confidence + '%)' : '';
             const errorMsg = f.status === 'error' ? ' — ' + f.error : '';
             return '<div' + clickable + '>' + icon + ' ' + escapeHtml(f.name) + findings + llmInfo + errorMsg + '</div>';
         }).join('') +
@@ -254,10 +266,10 @@ function showResults() {
 
     // Verdict
     if (currentResult.verdict === 'Safe') {
-        verdictBanner.textContent = t('safe');
+        verdictBanner.innerHTML = ICON.shieldCheck + ' ' + t('safe');
         verdictBanner.className = 'safe';
     } else {
-        verdictBanner.textContent = t('unsafe');
+        verdictBanner.innerHTML = ICON.shieldAlert + ' ' + t('unsafe');
         verdictBanner.className = 'unsafe';
     }
 
@@ -268,7 +280,7 @@ function showResults() {
     } else {
         for (const finding of currentResult.findings) {
             const severity = finding.severity === 'Critical' ? 'critical' : 'warning';
-            const icon = finding.severity === 'Critical' ? '🔴' : '🟡';
+            const icon = finding.severity === 'Critical' ? ICON.circleAlert : ICON.triangleAlert;
             const typeTag = t('detection_type_' + finding.detection_type) || finding.detection_type;
             const description = t('desc_' + finding.detection_type) || finding.description;
             const infoDesc = t('info_' + finding.detection_type);
@@ -374,7 +386,7 @@ function displayLlmResult() {
     el.style.borderLeftColor = currentLlmResult.classification === 'injection' ? 'var(--accent)' : 'var(--accent-green)';
     var classLabel = currentLlmResult.classification === 'injection' ? t('llm_class_injection') : t('llm_class_safe');
     el.innerHTML =
-        '<div class="finding-header">🤖 ' + t('llm_analysis_header') + ': ' + escapeHtml(classLabel) + ' (' + currentLlmResult.confidence + '% ' + t('confidence') + ')</div>' +
+        '<div class="finding-header">' + ICON.bot + ' ' + t('llm_analysis_header') + ': ' + escapeHtml(classLabel) + ' (' + currentLlmResult.confidence + '% ' + t('confidence') + ')</div>' +
         '<div class="finding-excerpt">' + escapeHtml(currentLlmResult.explanation) + '</div>';
     findingsList.appendChild(el);
 }

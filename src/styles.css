@@ -121,7 +121,12 @@ header h1 { font-size: 18px; font-weight: 600; }
     font-size: 18px;
     font-weight: 700;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
+#verdict-banner .icon { width: 22px; height: 22px; }
 
 #verdict-banner.safe { background: rgba(76, 175, 80, 0.15); color: var(--accent-green); }
 #verdict-banner.unsafe { background: rgba(233, 69, 96, 0.15); color: var(--accent); }
@@ -152,6 +157,23 @@ header h1 { font-size: 18px; font-weight: 600; }
     line-height: 1.5;
     border-left: 2px solid var(--text-muted);
 }
+
+.icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+.icon-safe { color: #4caf50; }
+.icon-unsafe { color: #f44336; }
+.icon-critical { color: #f44336; }
+.icon-warning { color: #ff9800; }
+.icon-bot { color: #7c4dff; }
+.icon-pending { color: var(--text-muted); }
+.icon-processing { color: #ff9800; animation: spin 1.5s linear infinite; }
+.icon-error { color: #f44336; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.safe .icon, .queue-safe .icon { color: #4caf50; }
+.unsafe .icon, .queue-unsafe .icon { color: #f44336; }
+
+.queue-item { display: flex; align-items: center; gap: 8px; }
+.finding-header { display: flex; align-items: center; gap: 6px; }
 
 .finding-tag {
     display: inline-block;
