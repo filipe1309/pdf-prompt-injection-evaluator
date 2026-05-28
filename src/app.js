@@ -196,8 +196,9 @@ function updateQueueUI() {
             const verdictClass = f.status === 'done' ? (f.result.verdict === 'Safe' ? 'queue-safe' : 'queue-unsafe') : '';
             const clickable = f.status === 'done' ? ' data-queue-index="' + i + '" class="queue-item clickable ' + verdictClass + '"' : ' class="queue-item ' + verdictClass + '"';
             const findings = f.status === 'done' ? ' — ' + f.result.findings.length + ' ' + t('findings_count') : '';
+            const llmInfo = (f.status === 'done' && f.llmResult) ? ' — 🤖 ' + (f.llmResult.classification === 'injection' ? t('llm_class_injection') : t('llm_class_safe')) + ' (' + f.llmResult.confidence + '%)' : '';
             const errorMsg = f.status === 'error' ? ' — ' + f.error : '';
-            return '<div' + clickable + '>' + icon + ' ' + escapeHtml(f.name) + findings + errorMsg + '</div>';
+            return '<div' + clickable + '>' + icon + ' ' + escapeHtml(f.name) + findings + llmInfo + errorMsg + '</div>';
         }).join('') +
         '</div>';
 
@@ -208,10 +209,11 @@ function updateQueueUI() {
             const item = fileQueue[idx];
             currentResult = item.result;
             currentFilePath = item.path;
-            currentLlmResult = null;
+            currentLlmResult = item.llmResult || null;
             document.getElementById('queue-view').classList.add('hidden');
             backToQueueBtn.classList.remove('hidden');
             showResults();
+            if (currentLlmResult) displayLlmResult();
         });
     });
 }
@@ -310,12 +312,42 @@ async function renderPdf(path) {
 
 // Deep Analysis
 deepAnalysisBtn.addEventListener('click', async () => {
+    const queueView = document.getElementById('queue-view');
+    const isQueueVisible = queueView && !queueView.classList.contains('hidden');
+
+    if (isQueueVisible && queueResults.length > 0) {
+        // Batch deep analysis for all queue items
+        showLoading(true);
+        try {
+            for (let i = 0; i < fileQueue.length; i++) {
+                if (fileQueue[i].status !== 'done') continue;
+                document.getElementById('loading-text').textContent =
+                    (t('deep_analysis') || 'Deep Analysis') + ' (' + (i + 1) + '/' + fileQueue.length + ')';
+                const result = fileQueue[i].result;
+                let textForLlm = result.extracted_text || '';
+                if (result.findings.length > 0) {
+                    textForLlm += '\n\n--- HEURISTIC FINDINGS (hidden/suspicious content detected) ---\n';
+                    result.findings.forEach((f, j) => {
+                        textForLlm += `${j+1}. [${f.detection_type}] Page ${f.page}: ${f.description}\n   Excerpt: "${f.excerpt}"\n`;
+                    });
+                }
+                const llmResult = await invoke('deep_analysis', { text: textForLlm || 'No text extracted from PDF' });
+                fileQueue[i].llmResult = llmResult;
+            }
+            updateQueueUI();
+        } catch (err) {
+            alert(t('llm_analysis_header') + ' ' + t('error').toLowerCase() + ': ' + err);
+        } finally {
+            showLoading(false);
+        }
+        return;
+    }
+
     if (!currentResult) return;
 
     showLoading(true);
     try {
         let textForLlm = currentResult.extracted_text || '';
-        // Append finding details so LLM can see hidden content (metadata, annotations, etc.)
         if (currentResult.findings.length > 0) {
             textForLlm += '\n\n--- HEURISTIC FINDINGS (hidden/suspicious content detected) ---\n';
             currentResult.findings.forEach((f, i) => {
