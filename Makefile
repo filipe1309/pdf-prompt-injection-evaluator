@@ -1,7 +1,9 @@
 .PHONY: help dev build release release-mac release-win test lint fmt clean install-deps check
 
-# Ensure Rust toolchain is on PATH
-export PATH := $(HOME)/.cargo/bin:$(HOME)/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$(PATH)
+# Rust toolchain PATH — ensures cargo/rustc are found in recipe shells
+RUST_TOOLCHAIN_BIN := $(HOME)/.rustup/toolchains/stable-aarch64-apple-darwin/bin
+export PATH := $(RUST_TOOLCHAIN_BIN):$(HOME)/.cargo/bin:/opt/homebrew/bin:$(PATH)
+SHELL := /bin/bash
 
 # Default target
 help: ## Show this help message
