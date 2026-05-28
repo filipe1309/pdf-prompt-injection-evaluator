@@ -1,3 +1,5 @@
+import { renderPdfFromBytes, getPageCount, goToPage } from './pdf-viewer.js';
+
 const { invoke } = window.__TAURI__.core;
 const { open, save } = window.__TAURI__.dialog;
 
@@ -94,21 +96,26 @@ function showResults() {
         }
     }
 
-    // Render PDF placeholder
-    renderPdfPlaceholder();
+    renderPdf(currentFilePath);
 }
 
-function renderPdfPlaceholder() {
-    const canvas = document.getElementById('pdf-canvas');
-    canvas.width = 400;
-    canvas.height = 560;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#222';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#888';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('PDF preview will be implemented', 20, 40);
-    ctx.fillText('in the next task (PDF.js viewer)', 20, 60);
+async function renderPdf(path) {
+    try {
+        const { readFile } = window.__TAURI__.fs;
+        const fileBytes = await readFile(path);
+        await renderPdfFromBytes(fileBytes, currentResult ? currentResult.findings : []);
+    } catch (err) {
+        console.error('PDF render failed:', err);
+        const canvas = document.getElementById('pdf-canvas');
+        canvas.width = 400;
+        canvas.height = 560;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#888';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('PDF preview unavailable', 20, 40);
+    }
 }
 
 // Deep Analysis
