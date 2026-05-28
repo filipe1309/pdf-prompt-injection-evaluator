@@ -35,9 +35,9 @@ function applyTranslations() {
     if (el('language-label')) el('language-label').textContent = t('language_label');
     if (el('save-settings-btn')) el('save-settings-btn').textContent = t('save');
     if (el('cancel-settings-btn')) el('cancel-settings-btn').textContent = t('cancel');
-    if (el('deep-analysis-btn')) el('deep-analysis-btn').textContent = t('deep_analysis');
-    if (el('export-btn')) el('export-btn').textContent = t('export_report');
-    if (el('new-file-btn')) el('new-file-btn').textContent = t('new_file');
+    if (el('deep-analysis-btn')) el('deep-analysis-btn').title = t('deep_analysis');
+    if (el('export-btn')) el('export-btn').title = t('export_report');
+    if (el('new-file-btn')) el('new-file-btn').title = t('new_file');
     if (el('loading-text')) el('loading-text').textContent = t('analyzing');
     document.title = t('app_title');
 }
@@ -60,6 +60,7 @@ const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
 const deepAnalysisBtn = document.getElementById('deep-analysis-btn');
 const exportBtn = document.getElementById('export-btn');
 const newFileBtn = document.getElementById('new-file-btn');
+const headerActions = document.getElementById('header-actions');
 const providerSelect = document.getElementById('provider-select');
 const apiKeyInput = document.getElementById('api-key-input');
 const customEndpoint = document.getElementById('custom-endpoint');
@@ -131,6 +132,7 @@ async function analyzePdfFile(path) {
 function showResults() {
     dropZoneContainer.classList.add('hidden');
     analysisView.classList.remove('hidden');
+    headerActions.classList.remove('hidden');
 
     // Verdict
     if (currentResult.verdict === 'Safe') {
@@ -243,6 +245,7 @@ newFileBtn.addEventListener('click', () => {
     currentLlmResult = null;
     currentFilePath = null;
     analysisView.classList.add('hidden');
+    headerActions.classList.add('hidden');
     dropZoneContainer.classList.remove('hidden');
 });
 
