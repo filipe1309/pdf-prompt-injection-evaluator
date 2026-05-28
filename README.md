@@ -6,9 +6,12 @@ A desktop application that helps lawyers verify PDF files for prompt injection a
 
 - **Heuristic Detection (Layer 1)**: Offline scanning for zero-width characters, hidden text, Unicode tricks, embedded JavaScript, suspicious annotations, and instruction patterns (pt-BR + EN)
 - **LLM Semantic Analysis (Layer 2)**: Optional deep analysis using OpenAI, Gemini, Anthropic, or custom LLM endpoints
+- **Multi-file Queue**: Process multiple PDFs at once with progress tracking and batch deep analysis
 - **PDF Viewer**: In-app PDF rendering with visual highlighting of suspicious regions
-- **Report Export**: Generate PDF reports attachable to legal proceedings (includes SHA-256 hash for integrity)
-- **Bilingual**: Full support for Portuguese (BR) and English
+- **Report Export**: Generate PDF/text reports (single or batch) attachable to legal proceedings (includes SHA-256 hash for integrity)
+- **Bilingual**: Full support for Portuguese (BR) and English — including report generation
+- **Persistent Settings**: Saves language, LLM provider, and API key across sessions
+- **Lucide Icons**: Clean SVG icon set for all UI indicators
 
 ## Tech Stack
 
@@ -83,7 +86,7 @@ Scans the PDF structure for:
 - Suspicious metadata and annotations
 
 ### Layer 2: LLM Semantic Analysis (optional)
-Sends suspicious excerpts to your configured LLM for semantic classification of injection attempts.
+Sends the full extracted text plus heuristic findings to your configured LLM for semantic classification of injection attempts. Works on individual files or in batch mode across the entire queue.
 
 ## Test Samples
 
@@ -117,13 +120,14 @@ One PDF per attack vector, based on the [15 documented techniques](https://www.m
 | 13 | `13_tounicode_cmap.pdf` | Tampered font-to-Unicode mapping (extracted ≠ visible) | High |
 | 14 | `14_citation_poisoning.pdf` | Fake jurisprudence and non-existent legal precedents | High |
 | 15 | `15_javascript_openaction.pdf` | Embedded JavaScript via /OpenAction | High |
+| 16 | `16_instrucao_visivel.pdf` | Visible prompt injection buried in contract text | Minimal |
 
 ### How to Use
 
 1. Open the application with `make dev`
 2. Drag and drop any sample PDF into the drop zone
 3. Compare results between the clean file and the injected ones
-4. The heuristic detector should flag vectors 01–05, 11–12, and 15 automatically
+4. The heuristic detector should flag vectors 01–05, 11–12, 15–16 automatically
 5. For advanced vectors (06–10, 13–14), use the LLM deep analysis for better detection
 
 > **Reference:** These vectors are documented in [this article](https://www.migalhas.com.br/depeso/455924/prompt-injection-em-documentos-judiciais-conceito-vetores-e-riscos) about the first judicial conviction for prompt injection in Brazil (Parauapebas/PA, May 2026).

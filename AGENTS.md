@@ -15,12 +15,13 @@ PDF Prompt Injection Evaluator — a Tauri v2 desktop app that detects hidden pr
 
 | File | Responsibility |
 |------|---------------|
-| `src-tauri/src/models.rs` | Data types: `DetectionType` enum, `Finding`, `Severity`, `AnalysisResult` |
+| `src-tauri/src/models.rs` | Data types: `DetectionType` enum, `Finding`, `Severity`, `AnalysisResult` (includes `extracted_text`) |
 | `src-tauri/src/pdf_parser.rs` | PDF parsing: text extraction, structural signal detection (white text, OCG, JS, forms) |
 | `src-tauri/src/heuristic_detector.rs` | Detection logic: maps structural signals + regex patterns → findings |
-| `src-tauri/src/llm_analyzer.rs` | Optional LLM-based semantic analysis (Layer 2) |
-| `src-tauri/src/report_generator.rs` | PDF report generation for legal proceedings |
-| `src/app.js` | Frontend: UI rendering, i18n, file upload handling |
+| `src-tauri/src/llm_analyzer.rs` | Optional LLM-based semantic analysis (Layer 2) — receives full text + findings context |
+| `src-tauri/src/report_generator.rs` | PDF/text report generation (single + batch), translated descriptions per language |
+| `src-tauri/src/config.rs` | Persistent app configuration (OS config dir) |
+| `src/app.js` | Frontend: UI rendering, i18n, file queue, batch deep analysis, Lucide icons |
 | `src/i18n/pt-BR.json` | Portuguese translations (primary language) |
 | `src/i18n/en.json` | English translations |
 
@@ -49,19 +50,26 @@ cd src-tauri && PATH="$HOME/.rustup/toolchains/stable-aarch64-apple-darwin/bin:$
 - Every new `DetectionType` variant requires corresponding i18n entries in both `pt-BR.json` and `en.json`:
   - `detection_type_<Variant>` — display label
   - `desc_<Variant>` — description shown in findings
+  - `info_<Variant>` — tooltip/info panel description
+- Report descriptions are translated via `translate_description()` in `report_generator.rs` — add new variants there too
+- `AnalysisResult` includes `extracted_text` (full page content) for LLM deep analysis
 - The `make_content()` test helper in `heuristic_detector.rs` must include all `PdfContent` fields
 - Use `regex::Regex::find()` (first match only) to avoid duplicate findings per value
 - Prefer returning extracted data (e.g., `Vec<String>`, `Option<String>`) over bare booleans to enable showing excerpts in the UI
+- PDF reports must use ASCII-only characters (no Unicode symbols like ✓✗—─) since Arial font lacks these glyphs
 
 ### Frontend
 
 - UI language is determined by user settings; all user-visible strings must go through i18n
 - `tOptional('excerpt_' + type)` is used for structural findings (when `char_offset == null`)
 - Real PDF text excerpts pass through untranslated (they come from the actual PDF content)
+- Use Lucide SVG icons (inline) instead of emojis — icon constants are defined in the `ICON` object at top of `app.js`
+- Multi-file queue: frontend manages state (`fileQueue` array), processes sequentially, stores `llmResult` per item
+- Deep analysis sends `extracted_text` + formatted heuristic findings to the LLM for proper context
 
 ### PDF Samples
 
-- Sample attack vectors live in `samples/vectors/` (01–15)
+- Sample attack vectors live in `samples/vectors/` (01–16)
 - Each PDF must have valid xref structure: comments BEFORE the `xref` section, never between `startxref` and `%%EOF`
 - PDFs should render the legal document visibly; attack content should be hidden via the specific vector technique
 - When rebuilding PDFs: use Python scripts with `zlib.compress()`, track byte offsets for xref, format as `f"{offset:010d} 00000 n \n"`
