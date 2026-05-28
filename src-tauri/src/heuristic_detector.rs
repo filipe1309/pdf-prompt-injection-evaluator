@@ -142,22 +142,32 @@ fn detect_zero_width_characters(page: u32, text: &str, findings: &mut Vec<Findin
         let first_pos = zero_width_positions[0];
         let count = zero_width_positions.len();
 
-        // Extract segments around zero-width chars to show affected regions
-        // Show text with zero-width chars replaced by visible markers [ZW]
-        let marked: String = text.chars().map(|ch| {
-            if zero_width_chars.contains(&ch) {
-                '·'
-            } else {
-                ch
-            }
-        }).collect();
+        // Extract the hidden text: characters that are adjacent to zero-width chars
+        // This reveals the actual injection content being smuggled
+        let chars: Vec<char> = text.chars().collect();
+        let mut hidden_chars: Vec<char> = Vec::new();
+        let mut prev_was_zw = false;
 
-        // Find the region with the most zero-width concentration
-        // and show it with markers
-        let start = if first_pos > 20 { first_pos - 20 } else { 0 };
-        let end = (first_pos + 200).min(marked.len());
-        let region: String = marked.chars().skip(start).take(end - start).collect();
-        let excerpt = region.trim().to_string();
+        for (i, ch) in chars.iter().enumerate() {
+            if zero_width_chars.contains(ch) {
+                prev_was_zw = true;
+            } else {
+                // Include this char if it's adjacent to zero-width chars
+                let next_is_zw = chars.get(i + 1).map_or(false, |c| zero_width_chars.contains(c));
+                if prev_was_zw || next_is_zw {
+                    hidden_chars.push(*ch);
+                }
+                prev_was_zw = false;
+            }
+        }
+
+        let hidden_text: String = hidden_chars.into_iter().collect();
+        let excerpt = if hidden_text.trim().is_empty() {
+            // Fallback: just show context around first occurrence
+            extract_context(text, first_pos, 40)
+        } else {
+            hidden_text.trim().to_string()
+        };
 
         findings.push(Finding {
             page,
