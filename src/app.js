@@ -133,6 +133,7 @@ async function processFileQueue(paths) {
     showQueueView();
     showLoading(true);
     document.getElementById('loading-text').textContent = t('analyzing') || 'Analyzing...';
+    const queueStartTime = Date.now();
 
     for (let i = 0; i < fileQueue.length; i++) {
         fileQueue[i].status = 'processing';
@@ -149,6 +150,11 @@ async function processFileQueue(paths) {
             fileQueue[i].error = err;
         }
         updateQueueUI();
+    }
+
+    const elapsed = Date.now() - queueStartTime;
+    if (elapsed < 1200) {
+        await new Promise(r => setTimeout(r, 1200 - elapsed));
     }
     showLoading(false);
 }
