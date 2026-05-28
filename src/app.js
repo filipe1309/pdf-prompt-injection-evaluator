@@ -3,6 +3,44 @@ import { renderPdfFromBytes, getPageCount, goToPage } from './pdf-viewer.js';
 const { invoke } = window.__TAURI__.core;
 const { open, save } = window.__TAURI__.dialog;
 
+let translations = {};
+
+async function loadTranslations() {
+    try {
+        const config = await invoke('get_config');
+        const lang = config.language || 'pt-BR';
+        const resp = await fetch('./i18n/' + lang + '.json');
+        translations = await resp.json();
+        document.documentElement.lang = lang;
+        applyTranslations();
+    } catch (e) {
+        console.warn('Failed to load translations, using defaults');
+    }
+}
+
+function t(key) {
+    return translations[key] || key;
+}
+
+function applyTranslations() {
+    const el = (id) => document.getElementById(id);
+    if (el('app-title')) el('app-title').textContent = t('app_title');
+    if (el('drop-text-primary')) el('drop-text-primary').textContent = t('drop_primary');
+    if (el('drop-text-secondary')) el('drop-text-secondary').textContent = translations.drop_secondary ?? '';
+    if (el('settings-title')) el('settings-title').textContent = t('settings');
+    if (el('provider-label')) el('provider-label').textContent = t('provider_label');
+    if (el('apikey-label')) el('apikey-label').textContent = t('apikey_label');
+    if (el('endpoint-label')) el('endpoint-label').textContent = t('endpoint_label');
+    if (el('language-label')) el('language-label').textContent = t('language_label');
+    if (el('save-settings-btn')) el('save-settings-btn').textContent = t('save');
+    if (el('cancel-settings-btn')) el('cancel-settings-btn').textContent = t('cancel');
+    if (el('deep-analysis-btn')) el('deep-analysis-btn').textContent = t('deep_analysis');
+    if (el('export-btn')) el('export-btn').textContent = t('export_report');
+    if (el('new-file-btn')) el('new-file-btn').textContent = t('new_file');
+    if (el('loading-text')) el('loading-text').textContent = t('analyzing');
+    document.title = t('app_title');
+}
+
 let currentResult = null;
 let currentLlmResult = null;
 let currentFilePath = null;
@@ -72,17 +110,17 @@ function showResults() {
 
     // Verdict
     if (currentResult.verdict === 'Safe') {
-        verdictBanner.textContent = '✅ SAFE — No injection detected';
+        verdictBanner.textContent = t('safe');
         verdictBanner.className = 'safe';
     } else {
-        verdictBanner.textContent = '🚨 UNSAFE — Potential injection detected';
+        verdictBanner.textContent = t('unsafe');
         verdictBanner.className = 'unsafe';
     }
 
     // Findings
     findingsList.innerHTML = '';
     if (currentResult.findings.length === 0) {
-        findingsList.innerHTML = '<p style="color: var(--text-muted)">No findings.</p>';
+        findingsList.innerHTML = '<p style="color: var(--text-muted)">' + t('no_findings') + '</p>';
     } else {
         for (const finding of currentResult.findings) {
             const severity = finding.severity === 'Critical' ? 'critical' : 'warning';
@@ -90,7 +128,7 @@ function showResults() {
             const el = document.createElement('div');
             el.className = 'finding-item ' + severity;
             el.innerHTML =
-                '<div class="finding-header">' + icon + ' Page ' + finding.page + ': ' + escapeHtml(finding.description) + '</div>' +
+                '<div class="finding-header">' + icon + ' ' + t('page') + ' ' + finding.page + ': ' + escapeHtml(finding.description) + '</div>' +
                 (finding.excerpt ? '<div class="finding-excerpt">"' + escapeHtml(finding.excerpt) + '"</div>' : '');
             findingsList.appendChild(el);
         }
@@ -163,7 +201,7 @@ exportBtn.addEventListener('click', async () => {
                 llmResult: currentLlmResult,
                 outputPath,
             });
-            alert('Report exported successfully!');
+            alert(t('export_success'));
         } catch (err) {
             alert('Export error: ' + err);
         }
@@ -201,6 +239,7 @@ saveSettingsBtn.addEventListener('click', async () => {
     };
     try {
         await invoke('save_settings', { config });
+        await loadTranslations();
         settingsModal.classList.add('hidden');
     } catch (err) {
         alert('Save error: ' + err);
@@ -224,3 +263,6 @@ function escapeHtml(str) {
     div.textContent = str;
     return div.innerHTML;
 }
+
+// Initialize translations on load
+loadTranslations();

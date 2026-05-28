@@ -1,0 +1,21 @@
+{
+    "app_title": "PDF Injection Checker",
+    "drop_primary": "Drop a PDF here or click to browse",
+    "drop_secondary": "",
+    "settings": "Settings",
+    "provider_label": "LLM Provider",
+    "apikey_label": "API Key",
+    "endpoint_label": "Custom Endpoint URL",
+    "language_label": "Language",
+    "save": "Save",
+    "cancel": "Cancel",
+    "safe": "✅ SAFE — No injection detected",
+    "unsafe": "🚨 UNSAFE — Potential injection detected",
+    "deep_analysis": "🔍 Deep Analysis",
+    "export_report": "📄 Export Report",
+    "new_file": "↩️ New File",
+    "analyzing": "Analyzing...",
+    "no_findings": "No findings.",
+    "export_success": "Report exported successfully!",
+    "page": "Page"
+}

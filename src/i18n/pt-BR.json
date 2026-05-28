@@ -1,0 +1,21 @@
+{
+    "app_title": "Verificador de Injeção em PDF",
+    "drop_primary": "Arraste um PDF aqui ou clique para selecionar",
+    "drop_secondary": "",
+    "settings": "Configurações",
+    "provider_label": "Provedor LLM",
+    "apikey_label": "Chave de API",
+    "endpoint_label": "URL do Endpoint Customizado",
+    "language_label": "Idioma",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "safe": "✅ SEGURO — Nenhuma injeção detectada",
+    "unsafe": "🚨 INSEGURO — Potencial injeção detectada",
+    "deep_analysis": "🔍 Análise Profunda",
+    "export_report": "📄 Exportar Relatório",
+    "new_file": "↩️ Novo Arquivo",
+    "analyzing": "Analisando...",
+    "no_findings": "Nenhuma ocorrência encontrada.",
+    "export_success": "Relatório exportado com sucesso!",
+    "page": "Página"
+}
