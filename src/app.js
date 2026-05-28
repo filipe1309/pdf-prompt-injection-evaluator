@@ -240,10 +240,10 @@ function updateQueueUI() {
     // Summary stats
     const statsHtml =
         '<div class="queue-stats">' +
-            (confirmedSafeCount > 0 ? '<span class="queue-stat queue-stat-safe' + (queueFilter === 'safe' ? ' active' : '') + '" data-filter="safe">' + ICON.shieldCheck + ' ' + confirmedSafeCount + ' ' + t('safe_short') + '</span>' : '') +
-            (preliminaryCount > 0 ? '<span class="queue-stat queue-stat-preliminary' + (queueFilter === 'preliminary' ? ' active' : '') + '" data-filter="preliminary">' + ICON.shieldCheck + ' ' + preliminaryCount + ' ' + t('preliminary_short') + '</span>' : '') +
-            (unsafeCount > 0 ? '<span class="queue-stat queue-stat-unsafe' + (queueFilter === 'unsafe' ? ' active' : '') + '" data-filter="unsafe">' + ICON.shieldAlert + ' ' + unsafeCount + ' ' + t('unsafe_short') + '</span>' : '') +
-            (pendingCount > 0 ? '<span class="queue-stat queue-stat-pending' + (queueFilter === 'pending' ? ' active' : '') + '" data-filter="pending">' + ICON.clock + ' ' + pendingCount + ' ' + t('pending_short') + '</span>' : '') +
+            (confirmedSafeCount > 0 ? '<span class="queue-stat queue-stat-safe' + (queueFilter === 'safe' ? ' active' : '') + '" data-filter="safe">' + ICON.shieldCheck + ' ' + confirmedSafeCount + ' ' + t(confirmedSafeCount === 1 ? 'safe_short' : 'safe_short_plural') + '</span>' : '') +
+            (preliminaryCount > 0 ? '<span class="queue-stat queue-stat-preliminary' + (queueFilter === 'preliminary' ? ' active' : '') + '" data-filter="preliminary">' + ICON.shieldCheck + ' ' + preliminaryCount + ' ' + t(preliminaryCount === 1 ? 'preliminary_short' : 'preliminary_short_plural') + '</span>' : '') +
+            (unsafeCount > 0 ? '<span class="queue-stat queue-stat-unsafe' + (queueFilter === 'unsafe' ? ' active' : '') + '" data-filter="unsafe">' + ICON.shieldAlert + ' ' + unsafeCount + ' ' + t(unsafeCount === 1 ? 'unsafe_short' : 'unsafe_short_plural') + '</span>' : '') +
+            (pendingCount > 0 ? '<span class="queue-stat queue-stat-pending' + (queueFilter === 'pending' ? ' active' : '') + '" data-filter="pending">' + ICON.clock + ' ' + pendingCount + ' ' + t(pendingCount === 1 ? 'pending_short' : 'pending_short_plural') + '</span>' : '') +
         '</div>';
 
     // Progress
