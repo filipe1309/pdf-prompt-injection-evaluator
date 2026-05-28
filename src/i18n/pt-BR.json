@@ -1,5 +1,5 @@
 {
-    "app_title": "Verificador de Injeção em PDF",
+    "app_title": "PDF Prompt Injection Checker",
     "drop_primary": "Arraste um PDF aqui ou clique para selecionar",
     "drop_secondary": "",
     "drop_hint": "PDF \u00b7 max 50MB",
