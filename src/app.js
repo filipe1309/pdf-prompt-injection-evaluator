@@ -333,7 +333,10 @@ backToQueueBtn.addEventListener('click', () => {
     analysisView.classList.add('hidden');
     backToQueueBtn.classList.add('hidden');
     const queueView = document.getElementById('queue-view');
-    if (queueView) queueView.classList.remove('hidden');
+    if (queueView) {
+        queueView.classList.remove('hidden');
+        updateQueueUI();
+    }
 });
 
 async function analyzePdfFile(path) {
