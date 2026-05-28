@@ -157,6 +157,7 @@ function showResults() {
             const icon = finding.severity === 'Critical' ? '🔴' : '🟡';
             const typeTag = t('detection_type_' + finding.detection_type) || finding.detection_type;
             const description = t('desc_' + finding.detection_type) || finding.description;
+            const infoDesc = t('info_' + finding.detection_type);
             const el = document.createElement('div');
             el.className = 'finding-item ' + severity;
                 const excerptText = finding.char_offset == null
@@ -167,7 +168,8 @@ function showResults() {
                     '<span class="finding-tag tag-' + severity + '" data-info-type="' + finding.detection_type + '">' + escapeHtml(typeTag) + '</span> ' +
                     icon + ' ' + (finding.page > 0 ? t('page') + ' ' + finding.page + ': ' : '') + escapeHtml(description) +
                 '</div>' +
-                (finding.excerpt ? '<div class="finding-excerpt">"' + escapeHtml(excerptText) + '"</div>' : '');
+                (finding.excerpt ? '<div class="finding-excerpt">"' + escapeHtml(excerptText) + '"</div>' : '') +
+                '<div class="finding-info hidden">' + escapeHtml(infoDesc) + '</div>';
             findingsList.appendChild(el);
         }
     }
@@ -363,28 +365,13 @@ function renderInfoModal() {
     }).join('');
 }
 
-// Click on finding tag → open info modal and highlight the related item
+// Click on finding tag → toggle inline info description
 findingsList.addEventListener('click', (e) => {
     const tag = e.target.closest('[data-info-type]');
     if (!tag) return;
-    const type = tag.dataset.infoType;
-    openInfoWithHighlight(type);
-});
-
-function openInfoWithHighlight(type) {
-    renderInfoModal();
-    infoModal.classList.remove('hidden');
-
-    // Remove previous highlights
-    infoList.querySelectorAll('.info-item-highlight').forEach(el => el.classList.remove('info-item-highlight'));
-
-    // Find and highlight the matching item
-    const items = infoList.querySelectorAll('.info-item');
-    for (const item of items) {
-        if (item.dataset.type === type) {
-            item.classList.add('info-item-highlight');
-            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            break;
-        }
+    const item = tag.closest('.finding-item');
+    const info = item?.querySelector('.finding-info');
+    if (info) {
+        info.classList.toggle('hidden');
     }
-}
+});
