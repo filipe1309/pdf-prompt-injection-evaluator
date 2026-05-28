@@ -5,11 +5,26 @@ use regex::Regex;
 pub fn detect(content: &PdfContent) -> Vec<Finding> {
     let mut findings = Vec::new();
 
+    // Determine if instruction patterns exist in pages
+    let pt_br_regex = instruction_patterns_pt_br();
+    let en_regex = instruction_patterns_en();
+
     for (page, text) in &content.pages {
         detect_zero_width_characters(*page, text, &mut findings);
-        detect_instruction_patterns(*page, text, &instruction_patterns_pt_br(), Severity::Warning, DetectionType::InstructionPattern, "Suspicious instruction pattern detected in page text", &mut findings);
-        detect_instruction_patterns(*page, text, &instruction_patterns_en(), Severity::Warning, DetectionType::InstructionPattern, "Suspicious instruction pattern detected in page text", &mut findings);
         detect_unicode_tricks(*page, text, &mut findings);
+
+        // If white text detected, tag instruction patterns as WhiteText vector
+        let detection_type = if content.has_white_text {
+            DetectionType::WhiteText
+        } else {
+            DetectionType::InstructionPattern
+        };
+
+        detect_instruction_patterns(*page, text, &pt_br_regex, Severity::Warning, detection_type.clone(), "Suspicious instruction pattern detected in page text", &mut findings);
+        detect_instruction_patterns(*page, text, &en_regex, Severity::Warning, detection_type.clone(), "Suspicious instruction pattern detected in page text", &mut findings);
+
+        // Detect token flooding (high repetition of legal terms)
+        detect_token_flooding(*page, text, &mut findings);
     }
 
     if content.has_javascript {
@@ -112,6 +127,30 @@ fn detect_annotation_injection(annotation: &AnnotationInfo, regex: &Regex, findi
     }
 }
 
+fn detect_token_flooding(page: u32, text: &str, findings: &mut Vec<Finding>) {
+    // Detect high repetition of legal-favorable terms (statistical flooding)
+    let flooding_terms = [
+        "procedente", "dano moral", "ma-fe", "confissao", "revelia",
+        "presuncao de veracidade", "incontroverso", "prova irrefutavel",
+    ];
+    let text_lower = text.to_lowercase();
+    let mut total_hits = 0;
+    for term in &flooding_terms {
+        total_hits += text_lower.matches(term).count();
+    }
+    // If more than 10 repetitions of favorable terms, flag as flooding
+    if total_hits > 10 {
+        findings.push(Finding {
+            page,
+            severity: Severity::Warning,
+            detection_type: DetectionType::TokenFlooding,
+            description: "Token flooding detected: excessive repetition of favorable legal terms".to_string(),
+            excerpt: format!("{} repetitions of favorable terms detected", total_hits),
+            char_offset: None,
+        });
+    }
+}
+
 fn instruction_patterns_pt_br() -> Regex {
     Regex::new(
         r"(?i)(ignore\s+(todas\s+)?(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras|aten[çc][aã]o[\s,]+intelig[eê]ncia\s+artificial|n[aã]o\s+impugne|conteste\s+(esta|essa|de\s+forma)\s+.*superficial|conclua\s+que\s+todos|independentemente\s+do\s+comando)",
@@ -158,6 +197,7 @@ mod tests {
             metadata: HashMap::new(),
             annotations: Vec::new(),
             has_javascript: false,
+            has_white_text: false,
         }
     }
 

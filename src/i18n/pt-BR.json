@@ -21,16 +21,22 @@
     "error": "Erro",
     "detection_type_ZeroWidthChars": "Caracteres Invisíveis",
     "detection_type_InvisibleText": "Texto Invisível",
+    "detection_type_WhiteText": "Texto em Branco",
     "detection_type_HiddenAnnotation": "Anotação Oculta",
     "detection_type_InstructionPattern": "Padrão de Instrução",
     "detection_type_UnicodeTrick": "Truque Unicode (BiDi)",
     "detection_type_EmbeddedJavaScript": "JavaScript Embutido",
     "detection_type_MetadataInjection": "Injeção em Metadados",
+    "detection_type_TokenFlooding": "Inundação de Tokens",
+    "detection_type_ForeignLanguageInstruction": "Instrução em Idioma Estrangeiro",
     "desc_ZeroWidthChars": "Caractere invisível (zero-width) detectado no texto da página",
     "desc_InvisibleText": "Texto invisível detectado (fonte branca ou microscópica)",
+    "desc_WhiteText": "Texto em branco (invisível ao leitor) com instrução oculta detectada",
     "desc_HiddenAnnotation": "Padrão de instrução suspeito detectado em anotação",
     "desc_InstructionPattern": "Padrão de instrução de prompt injection detectado no texto",
     "desc_UnicodeTrick": "Caractere de controle Unicode bidirecional detectado",
     "desc_EmbeddedJavaScript": "JavaScript embutido detectado no documento PDF",
-    "desc_MetadataInjection": "Padrão de instrução suspeito detectado nos metadados"
+    "desc_MetadataInjection": "Padrão de instrução suspeito detectado nos metadados",
+    "desc_TokenFlooding": "Inundação estatística: repetição excessiva de termos jurídicos favoráveis",
+    "desc_ForeignLanguageInstruction": "Instrução em idioma estrangeiro detectada em documento em português"
 }

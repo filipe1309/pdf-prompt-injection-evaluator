@@ -16,6 +16,7 @@ pub struct PdfContent {
     pub metadata: HashMap<String, String>,
     pub annotations: Vec<AnnotationInfo>,
     pub has_javascript: bool,
+    pub has_white_text: bool,
 }
 
 pub struct AnnotationInfo {
@@ -40,6 +41,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         metadata: extract_metadata(&doc),
         annotations: extract_annotations(&doc),
         has_javascript: check_javascript(&doc),
+        has_white_text: check_white_text(&doc),
     })
 }
 
@@ -121,6 +123,56 @@ fn extract_annotations(doc: &Document) -> Vec<AnnotationInfo> {
 
 fn check_javascript(doc: &Document) -> bool {
     doc.objects.values().any(object_contains_javascript)
+}
+
+fn check_white_text(doc: &Document) -> bool {
+    use lopdf::content::Content;
+
+    for (page_num, page_id) in doc.get_pages() {
+        let Ok(content_data) = doc.get_page_content(page_id) else {
+            continue;
+        };
+        let Ok(content) = Content::decode(&content_data) else {
+            continue;
+        };
+
+        let mut current_color_is_white = false;
+        let mut has_text_while_white = false;
+
+        for op in &content.operations {
+            match op.operator.as_str() {
+                // Non-stroking color (fill) - RGB
+                "rg" => {
+                    if op.operands.len() == 3 {
+                        let r = op.operands[0].as_float().unwrap_or(0.0);
+                        let g = op.operands[1].as_float().unwrap_or(0.0);
+                        let b = op.operands[2].as_float().unwrap_or(0.0);
+                        current_color_is_white = r > 0.99 && g > 0.99 && b > 0.99;
+                    }
+                }
+                // Gray colorspace
+                "g" => {
+                    if op.operands.len() == 1 {
+                        let gray = op.operands[0].as_float().unwrap_or(0.0);
+                        current_color_is_white = gray > 0.99;
+                    }
+                }
+                // Text operators
+                "Tj" | "TJ" | "'" | "\"" => {
+                    if current_color_is_white {
+                        has_text_while_white = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if has_text_while_white {
+            let _ = page_num; // suppress unused warning
+            return true;
+        }
+    }
+    false
 }
 
 fn object_contains_javascript(object: &Object) -> bool {

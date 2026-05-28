@@ -11,11 +11,14 @@ pub enum Severity {
 pub enum DetectionType {
     ZeroWidthChars,
     InvisibleText,
+    WhiteText,
     HiddenAnnotation,
     InstructionPattern,
     UnicodeTrick,
     EmbeddedJavaScript,
     MetadataInjection,
+    TokenFlooding,
+    ForeignLanguageInstruction,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
