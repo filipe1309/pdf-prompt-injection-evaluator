@@ -65,6 +65,7 @@ const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
 const deepAnalysisBtn = document.getElementById('deep-analysis-btn');
 const exportBtn = document.getElementById('export-btn');
 const newFileBtn = document.getElementById('new-file-btn');
+const backToQueueBtn = document.getElementById('back-to-queue-btn');
 const headerActions = document.getElementById('header-actions');
 const providerSelect = document.getElementById('provider-select');
 const apiKeyInput = document.getElementById('api-key-input');
@@ -198,10 +199,19 @@ function updateQueueUI() {
             currentFilePath = item.path;
             currentLlmResult = null;
             document.getElementById('queue-view').classList.add('hidden');
+            backToQueueBtn.classList.remove('hidden');
             showResults();
         });
     });
 }
+
+// Back to queue
+backToQueueBtn.addEventListener('click', () => {
+    analysisView.classList.add('hidden');
+    backToQueueBtn.classList.add('hidden');
+    const queueView = document.getElementById('queue-view');
+    if (queueView) queueView.classList.remove('hidden');
+});
 
 async function analyzePdfFile(path) {
     currentFilePath = path;
@@ -348,6 +358,7 @@ newFileBtn.addEventListener('click', () => {
     queueResults = [];
     analysisView.classList.add('hidden');
     headerActions.classList.add('hidden');
+    backToQueueBtn.classList.add('hidden');
     const queueView = document.getElementById('queue-view');
     if (queueView) queueView.classList.add('hidden');
     dropZoneContainer.classList.remove('hidden');
