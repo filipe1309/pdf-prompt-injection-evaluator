@@ -130,17 +130,26 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
 }
 
 fn detect_zero_width_characters(page: u32, text: &str, findings: &mut Vec<Finding>) {
-    for (pos, ch) in text.char_indices() {
-        if matches!(ch, '\u{200B}' | '\u{200C}' | '\u{200D}' | '\u{FEFF}' | '\u{00AD}' | '\u{2060}') {
-            findings.push(Finding {
-                page,
-                severity: Severity::Critical,
-                detection_type: DetectionType::ZeroWidthChars,
-                description: "Zero-width or invisible character detected in page text".to_string(),
-                excerpt: extract_context(text, pos, 30),
-                char_offset: Some(pos),
-            });
-        }
+    let zero_width_positions: Vec<usize> = text
+        .char_indices()
+        .filter(|(_, ch)| matches!(ch, '\u{200B}' | '\u{200C}' | '\u{200D}' | '\u{FEFF}' | '\u{00AD}' | '\u{2060}'))
+        .map(|(pos, _)| pos)
+        .collect();
+
+    if !zero_width_positions.is_empty() {
+        let first_pos = zero_width_positions[0];
+        let count = zero_width_positions.len();
+        findings.push(Finding {
+            page,
+            severity: Severity::Critical,
+            detection_type: DetectionType::ZeroWidthChars,
+            description: format!(
+                "Zero-width or invisible characters detected in page text ({} occurrences)",
+                count
+            ),
+            excerpt: extract_context(text, first_pos, 30),
+            char_offset: Some(first_pos),
+        });
     }
 }
 
