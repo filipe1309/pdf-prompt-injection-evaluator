@@ -601,6 +601,9 @@ deepAnalysisBtn.addEventListener('click', async () => {
             });
         }
         currentLlmResult = await invoke('deep_analysis', { text: textForLlm || 'No text extracted from PDF' });
+        // Persist LLM result back to queue item if applicable
+        const queueIdx = fileQueue.findIndex(f => f.path === currentFilePath);
+        if (queueIdx >= 0) fileQueue[queueIdx].llmResult = currentLlmResult;
         displayLlmResult();
     } catch (err) {
         alert(t('llm_analysis_header') + ' ' + t('error').toLowerCase() + ': ' + err);
