@@ -260,7 +260,11 @@ header h1 { font-size: 18px; font-weight: 600; }
     padding: 12px;
     background: var(--bg-primary);
     border-radius: 8px;
-    border-left: 4px solid var(--accent);
+    border-left: 4px solid #ff9800;
+}
+
+.info-item.critical {
+    border-left-color: var(--accent);
 }
 
 .info-item-title {

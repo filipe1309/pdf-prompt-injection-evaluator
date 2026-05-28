@@ -351,7 +351,7 @@ function renderInfoModal() {
         const desc = t('info_' + type);
         const sevLabel = severity === 'critical' ? t('info_severity_critical') : t('info_severity_warning');
         return `
-            <div class="info-item">
+            <div class="info-item ${severity}">
                 <div class="info-item-title">
                     <span>${icon}</span>
                     <span>${escapeHtml(title)}</span>
