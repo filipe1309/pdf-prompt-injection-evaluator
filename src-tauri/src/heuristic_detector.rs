@@ -202,16 +202,29 @@ fn detect_instruction_patterns(
     description: &str,
     findings: &mut Vec<Finding>,
 ) {
-    for matched in regex.find_iter(text) {
-        findings.push(Finding {
-            page,
-            severity: severity.clone(),
-            detection_type: detection_type.clone(),
-            description: description.to_string(),
-            excerpt: extract_context(text, matched.start(), 80),
-            char_offset: Some(matched.start()),
-        });
+    let matches: Vec<_> = regex.find_iter(text).collect();
+    if matches.is_empty() {
+        return;
     }
+
+    // Consolidate into a single finding per page showing the first match
+    // with count of total matches
+    let first = &matches[0];
+    let excerpt = extract_context(text, first.start(), 80);
+    let desc = if matches.len() > 1 {
+        format!("{} ({}x)", description, matches.len())
+    } else {
+        description.to_string()
+    };
+
+    findings.push(Finding {
+        page,
+        severity,
+        detection_type,
+        description: desc,
+        excerpt,
+        char_offset: Some(first.start()),
+    });
 }
 
 fn detect_unicode_tricks(page: u32, text: &str, findings: &mut Vec<Finding>) {
