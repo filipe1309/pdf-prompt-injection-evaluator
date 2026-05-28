@@ -143,6 +143,7 @@ listen('tauri://drag-leave', () => {
 // Multi-file queue
 let fileQueue = [];
 let queueResults = [];
+let queueFilter = null; // null | 'safe' | 'preliminary' | 'unsafe' | 'pending'
 
 async function processFileQueue(paths) {
     if (paths.length === 1) {
@@ -239,10 +240,10 @@ function updateQueueUI() {
     // Summary stats
     const statsHtml =
         '<div class="queue-stats">' +
-            (confirmedSafeCount > 0 ? '<span class="queue-stat queue-stat-safe">' + ICON.shieldCheck + ' ' + confirmedSafeCount + ' ' + t('safe_short') + '</span>' : '') +
-            (preliminaryCount > 0 ? '<span class="queue-stat queue-stat-preliminary">' + ICON.shieldCheck + ' ' + preliminaryCount + ' ' + t('preliminary_short') + '</span>' : '') +
-            (unsafeCount > 0 ? '<span class="queue-stat queue-stat-unsafe">' + ICON.shieldAlert + ' ' + unsafeCount + ' ' + t('unsafe_short') + '</span>' : '') +
-            (pendingCount > 0 ? '<span class="queue-stat queue-stat-pending">' + ICON.clock + ' ' + pendingCount + ' ' + t('pending_short') + '</span>' : '') +
+            (confirmedSafeCount > 0 ? '<span class="queue-stat queue-stat-safe' + (queueFilter === 'safe' ? ' active' : '') + '" data-filter="safe">' + ICON.shieldCheck + ' ' + confirmedSafeCount + ' ' + t('safe_short') + '</span>' : '') +
+            (preliminaryCount > 0 ? '<span class="queue-stat queue-stat-preliminary' + (queueFilter === 'preliminary' ? ' active' : '') + '" data-filter="preliminary">' + ICON.shieldCheck + ' ' + preliminaryCount + ' ' + t('preliminary_short') + '</span>' : '') +
+            (unsafeCount > 0 ? '<span class="queue-stat queue-stat-unsafe' + (queueFilter === 'unsafe' ? ' active' : '') + '" data-filter="unsafe">' + ICON.shieldAlert + ' ' + unsafeCount + ' ' + t('unsafe_short') + '</span>' : '') +
+            (pendingCount > 0 ? '<span class="queue-stat queue-stat-pending' + (queueFilter === 'pending' ? ' active' : '') + '" data-filter="pending">' + ICON.clock + ' ' + pendingCount + ' ' + t('pending_short') + '</span>' : '') +
         '</div>';
 
     // Progress
@@ -270,7 +271,15 @@ function updateQueueUI() {
 
             const clickable = f.status === 'done';
             const dataAttr = clickable ? ' data-queue-index="' + i + '"' : '';
-            const classes = 'queue-item ' + verdictClass + (clickable ? ' clickable' : '') + ' queue-item-enter';
+            // Filter logic
+            let matchesFilter = true;
+            if (queueFilter) {
+                if (queueFilter === 'safe') matchesFilter = f.status === 'done' && f.result.verdict === 'Safe' && f.llmResult;
+                else if (queueFilter === 'preliminary') matchesFilter = f.status === 'done' && f.result.verdict === 'Safe' && !f.llmResult;
+                else if (queueFilter === 'unsafe') matchesFilter = f.status === 'done' && f.result.verdict !== 'Safe';
+                else if (queueFilter === 'pending') matchesFilter = f.status === 'pending' || f.status === 'processing';
+            }
+            const classes = 'queue-item ' + verdictClass + (clickable ? ' clickable' : '') + ' queue-item-enter' + (!matchesFilter ? ' queue-item-filtered' : '');
             const animDelay = ' style="animation-delay: ' + (i * 0.05) + 's"';
 
             // Status badge
@@ -332,6 +341,16 @@ function updateQueueUI() {
             backToQueueBtn.classList.remove('hidden');
             showResults();
             if (currentLlmResult) displayLlmResult();
+        });
+    });
+
+    // Stat filter click handlers
+    container.querySelectorAll('[data-filter]').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+            const filter = el.dataset.filter;
+            queueFilter = (queueFilter === filter) ? null : filter;
+            updateQueueUI();
         });
     });
 }
