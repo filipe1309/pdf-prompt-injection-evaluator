@@ -929,7 +929,7 @@ header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
 .queue-stat:hover { opacity: 0.8; }
 .queue-stat.active { box-shadow: 0 0 0 2px currentColor; transform: scale(1.05); }
 
-.queue-item-filtered { opacity: 0.2 !important; pointer-events: none; animation: none !important; transform: none !important; }
+.queue-item-filtered { display: none; }
 
 .queue-progress-section {
     display: flex;
