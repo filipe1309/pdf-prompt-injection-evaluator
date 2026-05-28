@@ -32,13 +32,8 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
         // Tag instruction patterns with the detected vector type
         detect_instruction_patterns(*page, text, &pt_br_regex, Severity::Warning, primary_type.clone(), "Suspicious instruction pattern detected in page text", &mut findings);
 
-        // English instructions in a Portuguese document = foreign language vector
-        let en_type = if primary_type == DetectionType::InstructionPattern {
-            DetectionType::ForeignLanguageInstruction
-        } else {
-            primary_type.clone()
-        };
-        detect_instruction_patterns(*page, text, &en_regex, Severity::Warning, en_type, "Suspicious instruction pattern detected in page text", &mut findings);
+        // English instructions in a Portuguese document = foreign language vector (always)
+        detect_instruction_patterns(*page, text, &en_regex, Severity::Warning, DetectionType::ForeignLanguageInstruction, "Suspicious instruction pattern detected in page text", &mut findings);
 
         detect_token_flooding(*page, text, &mut findings);
     }
