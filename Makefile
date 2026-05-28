@@ -27,7 +27,7 @@ release-mac: ## Build macOS bundle (.app + .dmg) for Apple Silicon
 	$(CARGO) tauri build --target aarch64-apple-darwin
 
 release-win: ## Build Windows bundle (.exe / .msi)
-	$(CARGO) tauri build --target x86_64-pc-windows-msvc
+	$(CARGO) tauri build --target x86_64-pc-windows-gnu
 
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
