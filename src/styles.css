@@ -313,10 +313,16 @@ header h1 { font-size: 18px; font-weight: 600; }
 }
 
 .app-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     text-align: center;
-    padding: 16px 0 8px;
-    font-size: 0.8rem;
+    padding: 6px 0;
+    font-size: 0.75rem;
     color: var(--text-muted);
+    background: var(--bg-primary);
+    z-index: 10;
 }
 
 .app-footer a {
