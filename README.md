@@ -23,18 +23,42 @@ A desktop application that helps lawyers verify PDF files for prompt injection a
 
 - Rust (latest stable)
 - Cargo
-- Tauri CLI v2: `cargo install tauri-cli --version "^2"`
+- Tauri CLI v2
 
-### Run in development
+### Setup
 
 ```bash
-cargo tauri dev
+make install-deps
 ```
 
-### Build for production
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `make help` | Show all available targets |
+| `make dev` | Run the app in development mode |
+| `make build` | Build the Rust backend (debug) |
+| `make release` | Build production release bundle (.exe / .app) |
+| `make test` | Run all unit tests |
+| `make test-verbose` | Run tests with output |
+| `make lint` | Run clippy linter |
+| `make fmt` | Format Rust code |
+| `make fmt-check` | Check formatting without modifying files |
+| `make check` | Fast compile verification |
+| `make clean` | Remove build artifacts |
+| `make update` | Update Rust dependencies |
+
+### Quick Start
 
 ```bash
-cargo tauri build
+make install-deps   # one-time setup
+make dev            # run in development
+```
+
+### Build for Production
+
+```bash
+make release
 ```
 
 The executable will be in `src-tauri/target/release/bundle/`.
