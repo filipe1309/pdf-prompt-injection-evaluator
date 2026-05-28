@@ -51,6 +51,7 @@ pub struct AnalysisResult {
     pub file_hash: String,
     pub filename: String,
     pub analyzed_at: String,
+    pub extracted_text: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

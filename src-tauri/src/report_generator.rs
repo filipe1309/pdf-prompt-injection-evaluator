@@ -633,6 +633,7 @@ mod tests {
             file_hash: "abc123def456".to_string(),
             filename: "test.pdf".to_string(),
             analyzed_at: "2026-05-28 12:00:00".to_string(),
+            extracted_text: "hidden text here".to_string(),
         };
 
         let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

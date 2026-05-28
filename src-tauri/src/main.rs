@@ -20,6 +20,8 @@ async fn analyze_pdf(path: String) -> Result<AnalysisResult, String> {
 
     let content = pdf_parser::parse_pdf(&file_path).map_err(|e| format!("PDF parse error: {}", e))?;
 
+    let extracted_text: String = content.pages.values().cloned().collect::<Vec<_>>().join("\n");
+
     let findings = heuristic_detector::detect(&content);
 
     let verdict = if findings
@@ -42,6 +44,7 @@ async fn analyze_pdf(path: String) -> Result<AnalysisResult, String> {
         file_hash: hash,
         filename,
         analyzed_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        extracted_text,
     })
 }
 

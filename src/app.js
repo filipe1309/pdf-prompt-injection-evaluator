@@ -314,8 +314,8 @@ deepAnalysisBtn.addEventListener('click', async () => {
 
     showLoading(true);
     try {
-        const allText = currentResult.findings.map(f => f.excerpt).filter(Boolean).join('\n');
-        currentLlmResult = await invoke('deep_analysis', { text: allText || 'No suspicious text found' });
+        const allText = currentResult.extracted_text || currentResult.findings.map(f => f.excerpt).filter(Boolean).join('\n');
+        currentLlmResult = await invoke('deep_analysis', { text: allText || 'No text extracted from PDF' });
         displayLlmResult();
     } catch (err) {
         alert(t('llm_analysis_header') + ' ' + t('error').toLowerCase() + ': ' + err);
