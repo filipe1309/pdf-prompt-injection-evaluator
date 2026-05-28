@@ -1,5 +1,5 @@
 // pub mod config;
-// pub mod heuristic_detector;
+pub mod heuristic_detector;
 // pub mod llm_analyzer;
 pub mod models;
 pub mod pdf_parser;
