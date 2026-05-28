@@ -318,7 +318,7 @@ deepAnalysisBtn.addEventListener('click', async () => {
         currentLlmResult = await invoke('deep_analysis', { text: allText || 'No suspicious text found' });
         displayLlmResult();
     } catch (err) {
-        alert('LLM Analysis error: ' + err);
+        alert(t('llm_analysis_header') + ' ' + t('error').toLowerCase() + ': ' + err);
     } finally {
         showLoading(false);
     }
@@ -333,8 +333,9 @@ function displayLlmResult() {
     el.id = 'llm-result';
     el.className = 'finding-item';
     el.style.borderLeftColor = currentLlmResult.classification === 'injection' ? 'var(--accent)' : 'var(--accent-green)';
+    var classLabel = currentLlmResult.classification === 'injection' ? t('llm_class_injection') : t('llm_class_safe');
     el.innerHTML =
-        '<div class="finding-header">🤖 LLM Analysis: ' + escapeHtml(currentLlmResult.classification) + ' (' + currentLlmResult.confidence + '% confidence)</div>' +
+        '<div class="finding-header">🤖 ' + t('llm_analysis_header') + ': ' + escapeHtml(classLabel) + ' (' + currentLlmResult.confidence + '% ' + t('confidence') + ')</div>' +
         '<div class="finding-excerpt">' + escapeHtml(currentLlmResult.explanation) + '</div>';
     findingsList.appendChild(el);
 }
