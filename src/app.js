@@ -362,6 +362,17 @@ backToQueueBtn.addEventListener('click', () => {
     const queueView = document.getElementById('queue-view');
     if (queueView) {
         queueView.classList.remove('hidden');
+        // Reset filter if no items match anymore
+        if (queueFilter) {
+            const hasMatch = fileQueue.some(f => {
+                if (queueFilter === 'safe') return f.status === 'done' && f.result.verdict === 'Safe' && f.llmResult;
+                if (queueFilter === 'preliminary') return f.status === 'done' && f.result.verdict === 'Safe' && !f.llmResult;
+                if (queueFilter === 'unsafe') return f.status === 'done' && f.result.verdict !== 'Safe';
+                if (queueFilter === 'pending') return f.status === 'pending' || f.status === 'processing';
+                return false;
+            });
+            if (!hasMatch) queueFilter = null;
+        }
         updateQueueUI();
     }
 });
