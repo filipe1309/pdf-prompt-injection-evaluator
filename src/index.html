@@ -9,16 +9,68 @@
 <body>
     <div id="app">
         <header>
-            <h1>PDF Injection Checker</h1>
-            <button id="settings-btn">⚙️</button>
+            <h1 id="app-title">PDF Injection Checker</h1>
+            <button id="settings-btn" title="Settings">⚙️</button>
         </header>
-        <main id="main-content">
+
+        <!-- Drop Zone (initial state) -->
+        <main id="drop-zone-container">
             <div id="drop-zone">
-                <p>Arraste um PDF aqui ou clique para selecionar</p>
-                <p>Drop a PDF here or click to browse</p>
+                <div class="drop-icon">📄</div>
+                <p id="drop-text-primary">Arraste um PDF aqui ou clique para selecionar</p>
+                <p id="drop-text-secondary">Drop a PDF here or click to browse</p>
             </div>
         </main>
+
+        <!-- Analysis View (after file loaded) -->
+        <main id="analysis-view" class="hidden">
+            <div id="pdf-panel">
+                <canvas id="pdf-canvas"></canvas>
+            </div>
+            <div id="results-panel">
+                <div id="verdict-banner"></div>
+                <div id="findings-list"></div>
+                <div id="action-buttons">
+                    <button id="deep-analysis-btn" class="btn btn-secondary">🔍 Deep Analysis</button>
+                    <button id="export-btn" class="btn btn-primary">📄 Export Report</button>
+                    <button id="new-file-btn" class="btn btn-ghost">↩️ New File</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="settings-title">Settings</h2>
+                <label for="provider-select" id="provider-label">LLM Provider</label>
+                <select id="provider-select">
+                    <option value="OpenAI">OpenAI</option>
+                    <option value="Gemini">Google Gemini</option>
+                    <option value="Anthropic">Anthropic</option>
+                    <option value="Custom">Custom Endpoint</option>
+                </select>
+                <label for="api-key-input" id="apikey-label">API Key</label>
+                <input type="password" id="api-key-input" placeholder="sk-...">
+                <label for="custom-endpoint" id="endpoint-label" class="hidden">Custom Endpoint URL</label>
+                <input type="url" id="custom-endpoint" class="hidden" placeholder="https://...">
+                <label for="language-select" id="language-label">Language</label>
+                <select id="language-select">
+                    <option value="pt-BR">Português (BR)</option>
+                    <option value="en">English</option>
+                </select>
+                <div class="modal-actions">
+                    <button id="save-settings-btn" class="btn btn-primary">Save</button>
+                    <button id="cancel-settings-btn" class="btn btn-ghost">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner"></div>
+            <p id="loading-text">Analyzing...</p>
+        </div>
     </div>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
