@@ -651,6 +651,14 @@ header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
     margin-bottom: 8px;
 }
 
+.safe-empty-state .safe-title.preliminary {
+    color: #ffc107;
+}
+
+.safe-empty-state .safe-title.confirmed {
+    color: var(--accent-green);
+}
+
 .safe-empty-state .safe-subtitle {
     font-size: 13px;
     color: var(--text-muted);
