@@ -5,9 +5,93 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-const REPORT_TITLE: &str = "PDF INJECTION ANALYSIS REPORT";
-const DISCLAIMER: &str =
-    "This report is advisory only and should be reviewed alongside the source document and analyst judgment.";
+struct ReportLabels {
+    title: &'static str,
+    disclaimer: &'static str,
+    file_info: &'static str,
+    filename: &'static str,
+    analysis_date: &'static str,
+    hash: &'static str,
+    verdict: &'static str,
+    verdict_safe: &'static str,
+    verdict_unsafe: &'static str,
+    findings: &'static str,
+    no_findings: &'static str,
+    severity_label: &'static str,
+    page_label: &'static str,
+    description_label: &'static str,
+    excerpt_label: &'static str,
+    offset_label: &'static str,
+    severity_critical: &'static str,
+    severity_warning: &'static str,
+    severity_clean: &'static str,
+    llm_analysis: &'static str,
+    classification: &'static str,
+    confidence: &'static str,
+    explanation: &'static str,
+    footer: &'static str,
+    version: &'static str,
+}
+
+fn labels_for(language: &str) -> ReportLabels {
+    if language.starts_with("pt") {
+        ReportLabels {
+            title: "RELAT\u{d3}RIO DE AN\u{c1}LISE DE INJE\u{c7}\u{c3}O EM PDF",
+            disclaimer: "Este relat\u{f3}rio \u{e9} apenas consultivo e deve ser avaliado junto ao documento original e ao julgamento do analista.",
+            file_info: "INFORMA\u{c7}\u{d5}ES DO ARQUIVO",
+            filename: "Arquivo",
+            analysis_date: "Data da an\u{e1}lise",
+            hash: "Hash SHA-256",
+            verdict: "VEREDITO",
+            verdict_safe: "SEGURO",
+            verdict_unsafe: "INSEGURO",
+            findings: "ACHADOS",
+            no_findings: "Nenhuma ocorr\u{ea}ncia detectada.",
+            severity_label: "Severidade",
+            page_label: "P\u{e1}gina",
+            description_label: "Descri\u{e7}\u{e3}o",
+            excerpt_label: "Trecho",
+            offset_label: "Offset",
+            severity_critical: "CR\u{cd}TICO",
+            severity_warning: "ALERTA",
+            severity_clean: "LIMPO",
+            llm_analysis: "AN\u{c1}LISE LLM",
+            classification: "Classifica\u{e7}\u{e3}o",
+            confidence: "Confian\u{e7}a",
+            explanation: "Explica\u{e7}\u{e3}o",
+            footer: "RODAP\u{c9}",
+            version: "Vers\u{e3}o",
+        }
+    } else {
+        ReportLabels {
+            title: "PDF INJECTION ANALYSIS REPORT",
+            disclaimer: "This report is advisory only and should be reviewed alongside the source document and analyst judgment.",
+            file_info: "FILE INFORMATION",
+            filename: "Filename",
+            analysis_date: "Analysis date",
+            hash: "SHA-256 hash",
+            verdict: "VERDICT",
+            verdict_safe: "SAFE",
+            verdict_unsafe: "UNSAFE",
+            findings: "FINDINGS",
+            no_findings: "No findings detected.",
+            severity_label: "Severity",
+            page_label: "Page",
+            description_label: "Description",
+            excerpt_label: "Excerpt",
+            offset_label: "Character offset",
+            severity_critical: "CRITICAL",
+            severity_warning: "WARNING",
+            severity_clean: "CLEAN",
+            llm_analysis: "LLM ANALYSIS",
+            classification: "Classification",
+            confidence: "Confidence",
+            explanation: "Explanation",
+            footer: "FOOTER",
+            version: "Version",
+        }
+    }
+}
 
 #[derive(Error, Debug)]
 pub enum ReportError {
@@ -21,12 +105,13 @@ pub fn generate_report(
     result: &AnalysisResult,
     llm_result: Option<&LlmClassification>,
     output_path: &Path,
+    language: &str,
 ) -> Result<(), ReportError> {
     ensure_parent_dir(output_path)?;
 
-    match try_generate_pdf(result, llm_result, output_path) {
+    match try_generate_pdf(result, llm_result, output_path, language) {
         Ok(()) => Ok(()),
-        Err(pdf_error) => generate_text_report(result, llm_result, output_path).map_err(|text_error| {
+        Err(pdf_error) => generate_text_report(result, llm_result, output_path, language).map_err(|text_error| {
             ReportError::GenerationError(format!(
                 "PDF generation failed ({pdf_error}); text fallback failed ({text_error})"
             ))
@@ -45,11 +130,13 @@ fn try_generate_pdf(
     result: &AnalysisResult,
     llm_result: Option<&LlmClassification>,
     output_path: &Path,
+    language: &str,
 ) -> Result<(), ReportError> {
+    let labels = labels_for(language);
     let font_family = load_font_family()?;
 
     let mut doc = genpdf::Document::new(font_family);
-    doc.set_title(REPORT_TITLE);
+    doc.set_title(labels.title);
     doc.set_minimal_conformance();
 
     let mut decorator = genpdf::SimplePageDecorator::new();
@@ -57,62 +144,67 @@ fn try_generate_pdf(
     doc.set_page_decorator(decorator);
 
     doc.push(
-        elements::Paragraph::new(REPORT_TITLE)
+        elements::Paragraph::new(labels.title)
             .aligned(Alignment::Center)
             .styled(style::Style::new().bold().with_font_size(18)),
     );
     doc.push(elements::Break::new(1.5));
 
-    push_section_title(&mut doc, "FILE INFORMATION");
-    doc.push(elements::Paragraph::new(format!("Filename: {}", result.filename)));
+    push_section_title(&mut doc, labels.file_info);
+    doc.push(elements::Paragraph::new(format!("{}: {}", labels.filename, result.filename)));
     doc.push(elements::Paragraph::new(format!(
-        "Analysis date: {}",
-        result.analyzed_at
+        "{}: {}",
+        labels.analysis_date, result.analyzed_at
     )));
-    doc.push(elements::Paragraph::new(format!("SHA-256 hash: {}", result.file_hash)));
+    doc.push(elements::Paragraph::new(format!("{}: {}", labels.hash, result.file_hash)));
     doc.push(elements::Break::new(1.0));
 
-    push_section_title(&mut doc, "VERDICT");
+    push_section_title(&mut doc, labels.verdict);
+    let verdict_text = match result.verdict {
+        Verdict::Safe => labels.verdict_safe,
+        Verdict::Unsafe => labels.verdict_unsafe,
+    };
     doc.push(
-        elements::Paragraph::new(format_verdict(&result.verdict))
+        elements::Paragraph::new(verdict_text)
             .styled(style::Style::new().bold().with_font_size(14)),
     );
     doc.push(elements::Break::new(1.0));
 
-    push_section_title(&mut doc, "FINDINGS");
+    push_section_title(&mut doc, labels.findings);
     if result.findings.is_empty() {
-        doc.push(elements::Paragraph::new("No findings detected."));
+        doc.push(elements::Paragraph::new(labels.no_findings));
     } else {
         for (index, finding) in result.findings.iter().enumerate() {
-            doc.push(elements::Paragraph::new(format_finding(index + 1, finding)));
+            doc.push(elements::Paragraph::new(format_finding(index + 1, finding, &labels)));
             doc.push(elements::Break::new(0.8));
         }
     }
     doc.push(elements::Break::new(1.0));
 
     if let Some(llm_result) = llm_result {
-        push_section_title(&mut doc, "LLM ANALYSIS");
+        push_section_title(&mut doc, labels.llm_analysis);
         doc.push(elements::Paragraph::new(format!(
-            "Classification: {}",
-            llm_result.classification
+            "{}: {}",
+            labels.classification, llm_result.classification
         )));
         doc.push(elements::Paragraph::new(format!(
-            "Confidence: {}%",
-            llm_result.confidence
+            "{}: {}%",
+            labels.confidence, llm_result.confidence
         )));
         doc.push(elements::Paragraph::new(format!(
-            "Explanation: {}",
-            llm_result.explanation
+            "{}: {}",
+            labels.explanation, llm_result.explanation
         )));
         doc.push(elements::Break::new(1.0));
     }
 
-    push_section_title(&mut doc, "FOOTER");
+    push_section_title(&mut doc, labels.footer);
     doc.push(elements::Paragraph::new(format!(
-        "Version: {}",
+        "{}: {}",
+        labels.version,
         env!("CARGO_PKG_VERSION")
     )));
-    doc.push(elements::Paragraph::new(format!("Disclaimer: {DISCLAIMER}")));
+    doc.push(elements::Paragraph::new(format!("{}", labels.disclaimer)));
 
     doc.render_to_file(output_path)
         .map_err(|e| ReportError::SaveError(e.to_string()))
@@ -155,44 +247,55 @@ fn generate_text_report(
     result: &AnalysisResult,
     llm_result: Option<&LlmClassification>,
     output_path: &Path,
+    language: &str,
 ) -> Result<(), ReportError> {
-    fs::write(output_path, build_text_report(result, llm_result))
+    fs::write(output_path, build_text_report(result, llm_result, language))
         .map_err(|e| ReportError::SaveError(e.to_string()))
 }
 
-fn build_text_report(result: &AnalysisResult, llm_result: Option<&LlmClassification>) -> String {
+fn build_text_report(result: &AnalysisResult, llm_result: Option<&LlmClassification>, language: &str) -> String {
+    let labels = labels_for(language);
     let mut content = String::new();
 
-    content.push_str(REPORT_TITLE);
+    content.push_str(labels.title);
     content.push_str("\n================================\n\n");
 
-    content.push_str("FILE INFORMATION\n----------------\n");
-    content.push_str(&format!("Filename: {}\n", result.filename));
-    content.push_str(&format!("Analysis date: {}\n", result.analyzed_at));
-    content.push_str(&format!("SHA-256 hash: {}\n\n", result.file_hash));
+    content.push_str(labels.file_info);
+    content.push_str("\n----------------\n");
+    content.push_str(&format!("{}: {}\n", labels.filename, result.filename));
+    content.push_str(&format!("{}: {}\n", labels.analysis_date, result.analyzed_at));
+    content.push_str(&format!("{}: {}\n\n", labels.hash, result.file_hash));
 
-    content.push_str("VERDICT\n-------\n");
-    content.push_str(&format!("{}\n\n", format_verdict(&result.verdict)));
+    content.push_str(labels.verdict);
+    content.push_str("\n-------\n");
+    let verdict_text = match result.verdict {
+        Verdict::Safe => labels.verdict_safe,
+        Verdict::Unsafe => labels.verdict_unsafe,
+    };
+    content.push_str(&format!("{}\n\n", verdict_text));
 
-    content.push_str("FINDINGS\n--------\n");
+    content.push_str(labels.findings);
+    content.push_str("\n--------\n");
     if result.findings.is_empty() {
-        content.push_str("No findings detected.\n\n");
+        content.push_str(&format!("{}\n\n", labels.no_findings));
     } else {
         for (index, finding) in result.findings.iter().enumerate() {
-            content.push_str(&format!("{}\n\n", format_finding(index + 1, finding)));
+            content.push_str(&format!("{}\n\n", format_finding(index + 1, finding, &labels)));
         }
     }
 
     if let Some(llm_result) = llm_result {
-        content.push_str("LLM ANALYSIS\n------------\n");
-        content.push_str(&format!("Classification: {}\n", llm_result.classification));
-        content.push_str(&format!("Confidence: {}%\n", llm_result.confidence));
-        content.push_str(&format!("Explanation: {}\n\n", llm_result.explanation));
+        content.push_str(labels.llm_analysis);
+        content.push_str("\n------------\n");
+        content.push_str(&format!("{}: {}\n", labels.classification, llm_result.classification));
+        content.push_str(&format!("{}: {}%\n", labels.confidence, llm_result.confidence));
+        content.push_str(&format!("{}: {}\n\n", labels.explanation, llm_result.explanation));
     }
 
-    content.push_str("FOOTER\n------\n");
-    content.push_str(&format!("Version: {}\n", env!("CARGO_PKG_VERSION")));
-    content.push_str(&format!("Disclaimer: {}\n", DISCLAIMER));
+    content.push_str(labels.footer);
+    content.push_str("\n------\n");
+    content.push_str(&format!("{}: {}\n", labels.version, env!("CARGO_PKG_VERSION")));
+    content.push_str(&format!("{}\n", labels.disclaimer));
 
     content
 }
@@ -203,7 +306,7 @@ fn push_section_title(doc: &mut genpdf::Document, title: &str) {
     );
 }
 
-fn format_finding(index: usize, finding: &Finding) -> String {
+fn format_finding(index: usize, finding: &Finding, labels: &ReportLabels) -> String {
     let offset = finding
         .char_offset
         .map(|value| value.to_string())
@@ -213,31 +316,22 @@ fn format_finding(index: usize, finding: &Finding) -> String {
     } else {
         finding.excerpt.trim()
     };
+    let severity_text = match finding.severity {
+        Severity::Critical => labels.severity_critical,
+        Severity::Warning => labels.severity_warning,
+        Severity::Clean => labels.severity_clean,
+    };
 
     format!(
-        "{index}. Severity: {}\nPage: {}\nDescription: {}\nExcerpt: {}\nCharacter offset: {}",
-        format_severity(&finding.severity),
-        finding.page,
-        finding.description,
-        excerpt,
-        offset,
+        "{index}. {}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: {}",
+        labels.severity_label, severity_text,
+        labels.page_label, finding.page,
+        labels.description_label, finding.description,
+        labels.excerpt_label, excerpt,
+        labels.offset_label, offset,
     )
 }
 
-fn format_severity(severity: &Severity) -> &'static str {
-    match severity {
-        Severity::Critical => "CRITICAL",
-        Severity::Warning => "WARNING",
-        Severity::Clean => "CLEAN",
-    }
-}
-
-fn format_verdict(verdict: &Verdict) -> &'static str {
-    match verdict {
-        Verdict::Safe => "SAFE",
-        Verdict::Unsafe => "UNSAFE",
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -268,7 +362,7 @@ mod tests {
         fs::create_dir_all(&output_dir).unwrap();
         let output = output_dir.join("test_injection_report.pdf");
 
-        let res = generate_report(&result, None, &output);
+        let res = generate_report(&result, None, &output, "pt-BR");
         assert!(res.is_ok());
         assert!(output.exists());
         fs::remove_file(&output).ok();

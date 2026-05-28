@@ -70,7 +70,8 @@ async fn export_report(
     output_path: String,
 ) -> Result<(), String> {
     let path = PathBuf::from(output_path);
-    report_generator::generate_report(&result, llm_result.as_ref(), &path)
+    let cfg = config::load_config();
+    report_generator::generate_report(&result, llm_result.as_ref(), &path, &cfg.language)
         .map_err(|e| format!("Report error: {}", e))
 }
 
