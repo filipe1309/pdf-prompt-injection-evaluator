@@ -15,7 +15,7 @@ pub struct PdfContent {
     pub pages: HashMap<u32, String>,
     pub metadata: HashMap<String, String>,
     pub annotations: Vec<AnnotationInfo>,
-    pub has_javascript: bool,
+    pub javascript_code: Option<String>,
     pub has_white_text: bool,
     pub has_invisible_text: bool,
     pub has_microscopic_font: bool,
@@ -55,7 +55,7 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
         pages,
         metadata: extract_metadata(&doc),
         annotations: extract_annotations(&doc),
-        has_javascript: check_javascript(&doc),
+        javascript_code: extract_javascript(&doc),
         has_white_text,
         has_invisible_text,
         has_microscopic_font,
@@ -165,8 +165,87 @@ fn extract_annotations(doc: &Document) -> Vec<AnnotationInfo> {
     annotations
 }
 
-fn check_javascript(doc: &Document) -> bool {
-    doc.objects.values().any(object_contains_javascript)
+fn extract_javascript(doc: &Document) -> Option<String> {
+    for (_id, obj) in doc.objects.iter() {
+        if let Some(js) = extract_js_from_object(obj, doc, 0) {
+            return Some(js);
+        }
+    }
+    None
+}
+
+fn extract_js_from_object(object: &Object, doc: &Document, depth: u8) -> Option<String> {
+    if depth > 5 { return None; }
+    match object {
+        Object::Dictionary(dict) => {
+            if let Ok(js_obj) = dict.get(b"JS") {
+                return extract_js_string(js_obj, doc);
+            }
+            if let Ok(js_obj) = dict.get(b"JavaScript") {
+                return extract_js_string(js_obj, doc);
+            }
+            for (_, value) in dict.iter() {
+                if let Some(js) = extract_js_from_object(value, doc, depth + 1) {
+                    return Some(js);
+                }
+            }
+            None
+        }
+        Object::Stream(stream) => {
+            if let Ok(js_obj) = stream.dict.get(b"JS") {
+                return extract_js_string(js_obj, doc);
+            }
+            if let Ok(js_obj) = stream.dict.get(b"JavaScript") {
+                return extract_js_string(js_obj, doc);
+            }
+            for (_, value) in stream.dict.iter() {
+                if let Some(js) = extract_js_from_object(value, doc, depth + 1) {
+                    return Some(js);
+                }
+            }
+            None
+        }
+        Object::Array(items) => {
+            for item in items {
+                if let Some(js) = extract_js_from_object(item, doc, depth + 1) {
+                    return Some(js);
+                }
+            }
+            None
+        }
+        Object::Reference(id) => {
+            if let Ok(obj) = doc.get_object(*id) {
+                extract_js_from_object(obj, doc, depth + 1)
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
+fn extract_js_string(obj: &Object, doc: &Document) -> Option<String> {
+    match obj {
+        Object::String(bytes, _) => {
+            let s = String::from_utf8_lossy(bytes).to_string();
+            if !s.is_empty() { Some(s) } else { None }
+        }
+        Object::Stream(stream) => {
+            stream.decompressed_content().ok()
+                .and_then(|bytes| {
+                    let s = String::from_utf8_lossy(&bytes).to_string();
+                    if !s.is_empty() { Some(s) } else { None }
+                })
+        }
+        Object::Reference(id) => {
+            if let Ok(resolved) = doc.get_object(*id) {
+                extract_js_string(resolved, doc)
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
 }
 
 fn analyze_content_streams(doc: &Document) -> (bool, bool, bool, bool) {
@@ -533,25 +612,6 @@ fn collect_actual_text(object: &Object, doc: &Document, values: &mut Vec<String>
     }
 }
 
-fn object_contains_javascript(object: &Object) -> bool {
-    match object {
-        Object::Dictionary(dict) => {
-            dict.has(b"JS")
-                || dict.has(b"JavaScript")
-                || dict.iter().any(|(_, value)| object_contains_javascript(value))
-        }
-        Object::Stream(stream) => {
-            stream.dict.has(b"JS")
-                || stream.dict.has(b"JavaScript")
-                || stream
-                    .dict
-                    .iter()
-                    .any(|(_, value)| object_contains_javascript(value))
-        }
-        Object::Array(items) => items.iter().any(object_contains_javascript),
-        _ => false,
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -623,7 +683,7 @@ mod tests {
         let content = result.unwrap();
         assert!(!content.pages.is_empty());
         assert!(content.pages.values().any(|text| text.contains("Hello World")));
-        assert!(!content.has_javascript);
+        assert!(content.javascript_code.is_none());
     }
 
     #[test]

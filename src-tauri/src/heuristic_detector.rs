@@ -99,13 +99,18 @@ pub fn detect(content: &PdfContent) -> Vec<Finding> {
         });
     }
 
-    if content.has_javascript {
+    if let Some(ref js_code) = content.javascript_code {
+        let excerpt = if js_code.len() > 80 {
+            format!("{}...", &js_code[..80])
+        } else {
+            js_code.clone()
+        };
         findings.push(Finding {
             page: 0,
             severity: Severity::Critical,
             detection_type: DetectionType::EmbeddedJavaScript,
             description: "Embedded JavaScript detected in PDF document".to_string(),
-            excerpt: "Embedded JavaScript detected".to_string(),
+            excerpt,
             char_offset: None,
         });
     }
@@ -396,7 +401,7 @@ mod tests {
             pages,
             metadata: HashMap::new(),
             annotations: Vec::new(),
-            has_javascript: false,
+            javascript_code: None,
             has_white_text: false,
             has_invisible_text: false,
             has_microscopic_font: false,
@@ -454,7 +459,7 @@ mod tests {
     #[test]
     fn test_detects_embedded_javascript() {
         let mut content = make_content(HashMap::new());
-        content.has_javascript = true;
+        content.javascript_code = Some("app.alert('test')".to_string());
 
         let findings = detect(&content);
         let finding = findings
