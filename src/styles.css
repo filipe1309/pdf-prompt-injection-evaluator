@@ -400,6 +400,33 @@ header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
     color: var(--accent);
     box-shadow: 0 0 20px rgba(233, 69, 96, 0.08), inset 0 0 20px rgba(233, 69, 96, 0.05);
 }
+#verdict-banner.preliminary {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.06), inset 0 0 20px rgba(255, 193, 7, 0.03);
+}
+
+.deep-analysis-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 10px 20px;
+    background: rgba(233, 69, 96, 0.1);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.deep-analysis-cta:hover {
+    background: rgba(233, 69, 96, 0.2);
+    border-color: rgba(233, 69, 96, 0.5);
+    transform: translateY(-1px);
+}
 
 #file-info-bar {
     display: flex;
