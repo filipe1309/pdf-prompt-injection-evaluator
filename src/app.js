@@ -379,6 +379,7 @@ backToQueueBtn.addEventListener('click', () => {
 
 async function analyzePdfFile(path) {
     currentFilePath = path;
+    document.getElementById('loading-text').textContent = t('analyzing') || 'Analyzing...';
     showLoading(true);
 
     try {
