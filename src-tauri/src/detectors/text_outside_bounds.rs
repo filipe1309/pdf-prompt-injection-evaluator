@@ -4,15 +4,22 @@ use crate::models::Finding;
 use super::{VectorDetector, SharedSignals};
 use lopdf::Document;
 
-pub struct Signals;
+/// Signals extracted from the PDF for TextOutsideBoundsDetector detection.
+/// Replace with a real struct when implementing this detector.
+pub struct TextOutsideBoundsDetectorSignals;
+
 pub struct TextOutsideBoundsDetector;
 
 impl VectorDetector for TextOutsideBoundsDetector {
     fn name(&self) -> &'static str { "text_outside_bounds" }
+
     fn extract(&self, _doc: &Document, _raw: &[u8], _pages: &HashMap<u32, String>) -> Box<dyn Any + Send> {
-        unimplemented!("TextOutsideBoundsDetector not yet implemented")
+        // TODO: implement signal extraction
+        Box::new(TextOutsideBoundsDetectorSignals)
     }
+
     fn detect(&self, _s: &dyn Any, _pages: &HashMap<u32, String>, _shared: &SharedSignals) -> Vec<Finding> {
-        unimplemented!("TextOutsideBoundsDetector not yet implemented")
+        // TODO: implement detection logic
+        vec![]
     }
 }

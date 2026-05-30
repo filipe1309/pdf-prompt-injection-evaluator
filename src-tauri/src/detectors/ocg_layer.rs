@@ -4,15 +4,22 @@ use crate::models::Finding;
 use super::{VectorDetector, SharedSignals};
 use lopdf::Document;
 
-pub struct Signals;
+/// Signals extracted from the PDF for OcgLayerDetector detection.
+/// Replace with a real struct when implementing this detector.
+pub struct OcgLayerDetectorSignals;
+
 pub struct OcgLayerDetector;
 
 impl VectorDetector for OcgLayerDetector {
     fn name(&self) -> &'static str { "ocg_layer" }
+
     fn extract(&self, _doc: &Document, _raw: &[u8], _pages: &HashMap<u32, String>) -> Box<dyn Any + Send> {
-        unimplemented!("OcgLayerDetector not yet implemented")
+        // TODO: implement signal extraction
+        Box::new(OcgLayerDetectorSignals)
     }
+
     fn detect(&self, _s: &dyn Any, _pages: &HashMap<u32, String>, _shared: &SharedSignals) -> Vec<Finding> {
-        unimplemented!("OcgLayerDetector not yet implemented")
+        // TODO: implement detection logic
+        vec![]
     }
 }

@@ -4,15 +4,22 @@ use crate::models::Finding;
 use super::{VectorDetector, SharedSignals};
 use lopdf::Document;
 
-pub struct Signals;
+/// Signals extracted from the PDF for ActualTextDetector detection.
+/// Replace with a real struct when implementing this detector.
+pub struct ActualTextDetectorSignals;
+
 pub struct ActualTextDetector;
 
 impl VectorDetector for ActualTextDetector {
     fn name(&self) -> &'static str { "actual_text" }
+
     fn extract(&self, _doc: &Document, _raw: &[u8], _pages: &HashMap<u32, String>) -> Box<dyn Any + Send> {
-        unimplemented!("ActualTextDetector not yet implemented")
+        // TODO: implement signal extraction
+        Box::new(ActualTextDetectorSignals)
     }
+
     fn detect(&self, _s: &dyn Any, _pages: &HashMap<u32, String>, _shared: &SharedSignals) -> Vec<Finding> {
-        unimplemented!("ActualTextDetector not yet implemented")
+        // TODO: implement detection logic
+        vec![]
     }
 }

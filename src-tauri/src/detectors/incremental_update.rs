@@ -4,15 +4,22 @@ use crate::models::Finding;
 use super::{VectorDetector, SharedSignals};
 use lopdf::Document;
 
-pub struct Signals;
+/// Signals extracted from the PDF for IncrementalUpdateDetector detection.
+/// Replace with a real struct when implementing this detector.
+pub struct IncrementalUpdateDetectorSignals;
+
 pub struct IncrementalUpdateDetector;
 
 impl VectorDetector for IncrementalUpdateDetector {
     fn name(&self) -> &'static str { "incremental_update" }
+
     fn extract(&self, _doc: &Document, _raw: &[u8], _pages: &HashMap<u32, String>) -> Box<dyn Any + Send> {
-        unimplemented!("IncrementalUpdateDetector not yet implemented")
+        // TODO: implement signal extraction
+        Box::new(IncrementalUpdateDetectorSignals)
     }
+
     fn detect(&self, _s: &dyn Any, _pages: &HashMap<u32, String>, _shared: &SharedSignals) -> Vec<Finding> {
-        unimplemented!("IncrementalUpdateDetector not yet implemented")
+        // TODO: implement detection logic
+        vec![]
     }
 }

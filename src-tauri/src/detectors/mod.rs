@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use crate::models::Finding;
 use lopdf::Document;
 use regex::Regex;
@@ -43,9 +44,16 @@ pub struct SharedSignals {
     pub has_white_text: bool,
     pub has_microscopic_font: bool,
     pub has_incremental_update: bool,
+    pub has_invisible_text: bool,
+    pub has_text_outside_bounds: bool,
 }
 
-pub fn build_shared_signals(doc: &Document, raw_bytes: &[u8], _pages: &HashMap<u32, String>) -> SharedSignals {
+/// Computes cross-detector flags used by detectors that need context about
+/// other signals (e.g. CitationPoisoning suppresses standalone WhiteText).
+/// This is a pre-pass over the PDF before individual detectors run.
+// TODO(task-9): delegate per-detector pre-pass logic to WhiteTextDetector /
+// MicroscopicFontDetector once implemented, to avoid duplicate parsing.
+pub fn build_shared_signals(doc: &Document, raw_bytes: &[u8]) -> SharedSignals {
     use lopdf::content::Content;
 
     let mut has_white_text = false;
@@ -60,6 +68,7 @@ pub fn build_shared_signals(doc: &Document, raw_bytes: &[u8], _pages: &HashMap<u
 
         for op in &content.operations {
             match op.operator.as_str() {
+                // DeviceRGB non-stroking: r g b rg
                 "rg" => {
                     if op.operands.len() == 3 {
                         let r = op.operands[0].as_float().unwrap_or(0.0);
@@ -68,10 +77,47 @@ pub fn build_shared_signals(doc: &Document, raw_bytes: &[u8], _pages: &HashMap<u
                         current_color_is_white = r > 0.99 && g > 0.99 && b > 0.99;
                     }
                 }
+                // DeviceRGB stroking: R G B RG
+                "RG" => {
+                    if op.operands.len() == 3 {
+                        let r = op.operands[0].as_float().unwrap_or(0.0);
+                        let g = op.operands[1].as_float().unwrap_or(0.0);
+                        let b = op.operands[2].as_float().unwrap_or(0.0);
+                        current_color_is_white = r > 0.99 && g > 0.99 && b > 0.99;
+                    }
+                }
+                // DeviceGray non-stroking: g
                 "g" => {
                     if op.operands.len() == 1 {
                         let gray = op.operands[0].as_float().unwrap_or(0.0);
                         current_color_is_white = gray > 0.99;
+                    }
+                }
+                // DeviceGray stroking: G
+                "G" => {
+                    if op.operands.len() == 1 {
+                        let gray = op.operands[0].as_float().unwrap_or(0.0);
+                        current_color_is_white = gray > 0.99;
+                    }
+                }
+                // DeviceCMYK non-stroking: c m y k (white = 0 0 0 0)
+                "k" => {
+                    if op.operands.len() == 4 {
+                        let c = op.operands[0].as_float().unwrap_or(1.0);
+                        let m = op.operands[1].as_float().unwrap_or(1.0);
+                        let y = op.operands[2].as_float().unwrap_or(1.0);
+                        let k = op.operands[3].as_float().unwrap_or(1.0);
+                        current_color_is_white = c < 0.01 && m < 0.01 && y < 0.01 && k < 0.01;
+                    }
+                }
+                // DeviceCMYK stroking: C M Y K
+                "K" => {
+                    if op.operands.len() == 4 {
+                        let c = op.operands[0].as_float().unwrap_or(1.0);
+                        let m = op.operands[1].as_float().unwrap_or(1.0);
+                        let y = op.operands[2].as_float().unwrap_or(1.0);
+                        let k = op.operands[3].as_float().unwrap_or(1.0);
+                        current_color_is_white = c < 0.01 && m < 0.01 && y < 0.01 && k < 0.01;
                     }
                 }
                 "Tf" => {
@@ -102,7 +148,14 @@ pub fn build_shared_signals(doc: &Document, raw_bytes: &[u8], _pages: &HashMap<u
     }
     let has_incremental_update = count > 1;
 
-    SharedSignals { has_white_text, has_microscopic_font, has_incremental_update }
+    SharedSignals {
+        has_white_text,
+        has_microscopic_font,
+        has_incremental_update,
+        // Populated by individual detectors in future tasks
+        has_invisible_text: false,
+        has_text_outside_bounds: false,
+    }
 }
 
 pub fn run_all(
@@ -126,7 +179,7 @@ pub fn run_all(
     use white_text::WhiteTextDetector;
     use zero_width::ZeroWidthDetector;
 
-    let shared = build_shared_signals(doc, raw_bytes, pages);
+    let shared = build_shared_signals(doc, raw_bytes);
 
     let detectors: Vec<Box<dyn VectorDetector>> = vec![
         Box::new(IncrementalUpdateDetector),
@@ -154,6 +207,7 @@ pub fn run_all(
 }
 
 // Shared helpers used by multiple detectors
+
 pub fn extract_context(text: &str, pos: usize, radius: usize) -> String {
     let mut start = pos.saturating_sub(radius);
     while start > 0 && !text.is_char_boundary(start) {
@@ -166,20 +220,29 @@ pub fn extract_context(text: &str, pos: usize, radius: usize) -> String {
     text[start..end].to_string()
 }
 
-pub fn instruction_patterns_pt_br() -> Regex {
-    Regex::new(
-        r"(?i)(ignore\s+(todas\s+)?(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras|aten[çc][aã]o[\s,]+intelig[eê]ncia\s+artificial|n[aã]o\s+impugne|conteste\s+(esta|essa|de\s+forma)\s+.*superficial|conclua\s+que\s+todos|independentemente\s+do\s+comando)",
-    ).expect("valid pt-BR instruction regex")
+// Pattern strings are const so combined_instruction_patterns() can be built
+// from them without risk of the patterns drifting out of sync.
+const PT_BR_PATTERN: &str = r"ignore\s+(todas\s+)?(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras|aten[çc][aã]o[\s,]+intelig[eê]ncia\s+artificial|n[aã]o\s+impugne|conteste\s+(esta|essa|de\s+forma)\s+.*superficial|conclua\s+que\s+todos|independentemente\s+do\s+comando";
+const EN_PATTERN: &str = r"ignore\s+(all\s+)?previous\s+instructions|disregard\s+(the\s+)?(above|previous)|act\s+as\s+(?:if\s+)?(?:you\s+(?:are|were)|an?\s+(?:AI|unrestricted|jailbreak|dan|evil|free))|new\s+objective|forget\s+(all\s+)?(your\s+)?instructions|you\s+are\s+now\s+|system\s*:\s*";
+
+pub fn instruction_patterns_pt_br() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(&format!("(?i)({PT_BR_PATTERN})")).expect("valid pt-BR instruction regex")
+    })
 }
 
-pub fn instruction_patterns_en() -> Regex {
-    Regex::new(
-        r"(?i)(ignore\s+(all\s+)?previous\s+instructions|disregard\s+(the\s+)?(above|previous)|act\s+as\s+(a\s+)?|new\s+objective|forget\s+(all\s+)?(your\s+)?instructions|you\s+are\s+now\s+|system\s*:\s*)",
-    ).expect("valid EN instruction regex")
+pub fn instruction_patterns_en() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(&format!("(?i)({EN_PATTERN})")).expect("valid EN instruction regex")
+    })
 }
 
-pub fn combined_instruction_patterns() -> Regex {
-    Regex::new(
-        r"(?i)(ignore\s+(todas\s+)?(as\s+)?instru[çc][õo]es|desconsidere\s+o\s+prompt|aja\s+como|novo\s+objetivo|esque[çc]a\s+(as\s+)?instru[çc][õo]es|n[aã]o\s+siga\s+(as\s+)?regras|aten[çc][aã]o[\s,]+intelig[eê]ncia\s+artificial|n[aã]o\s+impugne|conteste\s+(esta|essa|de\s+forma)\s+.*superficial|conclua\s+que\s+todos|independentemente\s+do\s+comando|ignore\s+(all\s+)?previous\s+instructions|disregard\s+(the\s+)?(above|previous)|act\s+as\s+(a\s+)?|new\s+objective|forget\s+(all\s+)?(your\s+)?instructions|you\s+are\s+now\s+|system\s*:\s*)",
-    ).expect("valid combined instruction regex")
+pub fn combined_instruction_patterns() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(&format!("(?i)({PT_BR_PATTERN}|{EN_PATTERN})"))
+            .expect("valid combined instruction regex")
+    })
 }
