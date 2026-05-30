@@ -314,7 +314,7 @@ fn push_finding_block(doc: &mut genpdf::Document, index: usize, finding: &Findin
     // Finding header: "1. CRÍTICO — Página 1"
     let mut header = elements::Paragraph::new(format!("{}. ", index));
     header.push_styled(
-        format!("{}", severity_text),
+        severity_text.to_string(),
         style::Style::new().bold().with_color(severity_color),
     );
     header.push_styled(

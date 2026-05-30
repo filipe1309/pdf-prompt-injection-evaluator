@@ -69,61 +69,47 @@ pub fn build_shared_signals(doc: &Document, raw_bytes: &[u8]) -> SharedSignals {
         for op in &content.operations {
             match op.operator.as_str() {
                 // DeviceRGB non-stroking: r g b rg
-                "rg" => {
-                    if op.operands.len() == 3 {
-                        let r = op.operands[0].as_float().unwrap_or(0.0);
-                        let g = op.operands[1].as_float().unwrap_or(0.0);
-                        let b = op.operands[2].as_float().unwrap_or(0.0);
-                        current_color_is_white = r > 0.99 && g > 0.99 && b > 0.99;
-                    }
+                "rg" if op.operands.len() == 3 => {
+                    let r = op.operands[0].as_float().unwrap_or(0.0);
+                    let g = op.operands[1].as_float().unwrap_or(0.0);
+                    let b = op.operands[2].as_float().unwrap_or(0.0);
+                    current_color_is_white = r > 0.99 && g > 0.99 && b > 0.99;
                 }
                 // DeviceRGB stroking: R G B RG
-                "RG" => {
-                    if op.operands.len() == 3 {
-                        let r = op.operands[0].as_float().unwrap_or(0.0);
-                        let g = op.operands[1].as_float().unwrap_or(0.0);
-                        let b = op.operands[2].as_float().unwrap_or(0.0);
-                        current_color_is_white = r > 0.99 && g > 0.99 && b > 0.99;
-                    }
+                "RG" if op.operands.len() == 3 => {
+                    let r = op.operands[0].as_float().unwrap_or(0.0);
+                    let g = op.operands[1].as_float().unwrap_or(0.0);
+                    let b = op.operands[2].as_float().unwrap_or(0.0);
+                    current_color_is_white = r > 0.99 && g > 0.99 && b > 0.99;
                 }
                 // DeviceGray non-stroking: g
-                "g" => {
-                    if op.operands.len() == 1 {
-                        let gray = op.operands[0].as_float().unwrap_or(0.0);
-                        current_color_is_white = gray > 0.99;
-                    }
+                "g" if op.operands.len() == 1 => {
+                    let gray = op.operands[0].as_float().unwrap_or(0.0);
+                    current_color_is_white = gray > 0.99;
                 }
                 // DeviceGray stroking: G
-                "G" => {
-                    if op.operands.len() == 1 {
-                        let gray = op.operands[0].as_float().unwrap_or(0.0);
-                        current_color_is_white = gray > 0.99;
-                    }
+                "G" if op.operands.len() == 1 => {
+                    let gray = op.operands[0].as_float().unwrap_or(0.0);
+                    current_color_is_white = gray > 0.99;
                 }
                 // DeviceCMYK non-stroking: c m y k (white = 0 0 0 0)
-                "k" => {
-                    if op.operands.len() == 4 {
-                        let c = op.operands[0].as_float().unwrap_or(1.0);
-                        let m = op.operands[1].as_float().unwrap_or(1.0);
-                        let y = op.operands[2].as_float().unwrap_or(1.0);
-                        let k = op.operands[3].as_float().unwrap_or(1.0);
-                        current_color_is_white = c < 0.01 && m < 0.01 && y < 0.01 && k < 0.01;
-                    }
+                "k" if op.operands.len() == 4 => {
+                    let c = op.operands[0].as_float().unwrap_or(1.0);
+                    let m = op.operands[1].as_float().unwrap_or(1.0);
+                    let y = op.operands[2].as_float().unwrap_or(1.0);
+                    let k = op.operands[3].as_float().unwrap_or(1.0);
+                    current_color_is_white = c < 0.01 && m < 0.01 && y < 0.01 && k < 0.01;
                 }
                 // DeviceCMYK stroking: C M Y K
-                "K" => {
-                    if op.operands.len() == 4 {
-                        let c = op.operands[0].as_float().unwrap_or(1.0);
-                        let m = op.operands[1].as_float().unwrap_or(1.0);
-                        let y = op.operands[2].as_float().unwrap_or(1.0);
-                        let k = op.operands[3].as_float().unwrap_or(1.0);
-                        current_color_is_white = c < 0.01 && m < 0.01 && y < 0.01 && k < 0.01;
-                    }
+                "K" if op.operands.len() == 4 => {
+                    let c = op.operands[0].as_float().unwrap_or(1.0);
+                    let m = op.operands[1].as_float().unwrap_or(1.0);
+                    let y = op.operands[2].as_float().unwrap_or(1.0);
+                    let k = op.operands[3].as_float().unwrap_or(1.0);
+                    current_color_is_white = c < 0.01 && m < 0.01 && y < 0.01 && k < 0.01;
                 }
-                "Tf" => {
-                    if op.operands.len() >= 2 {
-                        current_font_size = op.operands[1].as_float().unwrap_or(12.0);
-                    }
+                "Tf" if op.operands.len() >= 2 => {
+                    current_font_size = op.operands[1].as_float().unwrap_or(12.0);
                 }
                 "Tj" | "TJ" | "'" | "\"" => {
                     if current_color_is_white { has_white_text = true; }

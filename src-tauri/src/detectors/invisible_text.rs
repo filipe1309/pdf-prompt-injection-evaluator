@@ -24,16 +24,12 @@ impl VectorDetector for InvisibleTextDetector {
             for op in &content.operations {
                 match op.operator.as_str() {
                     "BT" => { render_mode = 0; }
-                    "Tr" => {
-                        if !op.operands.is_empty() {
-                            render_mode = op.operands[0].as_i64().unwrap_or(0) as i32;
-                        }
+                    "Tr" if !op.operands.is_empty() => {
+                        render_mode = op.operands[0].as_i64().unwrap_or(0) as i32;
                     }
-                    "Tj" | "TJ" | "'" | "\"" => {
-                        if render_mode == 3 {
-                            has_invisible_text = true;
-                            break 'outer;
-                        }
+                    "Tj" | "TJ" | "'" | "\"" if render_mode == 3 => {
+                        has_invisible_text = true;
+                        break 'outer;
                     }
                     _ => {}
                 }

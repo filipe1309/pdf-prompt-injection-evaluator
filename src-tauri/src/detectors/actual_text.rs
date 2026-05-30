@@ -42,7 +42,7 @@ impl VectorDetector for ActualTextDetector {
 
     fn extract(&self, doc: &Document, _raw_bytes: &[u8], _pages: &HashMap<u32, String>) -> Box<dyn Any + Send> {
         let mut values = Vec::new();
-        for (_, object) in &doc.objects { collect_actual_text(object, doc, &mut values); }
+        for object in doc.objects.values() { collect_actual_text(object, doc, &mut values); }
         Box::new(Signals { actual_text_values: values })
     }
 

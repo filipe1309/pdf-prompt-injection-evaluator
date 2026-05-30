@@ -51,7 +51,7 @@ impl VectorDetector for ZeroWidthDetector {
                 if zero_width_chars.contains(ch) {
                     prev_was_zw = true;
                 } else {
-                    let next_is_zw = chars.get(i + 1).map_or(false, |c| zero_width_chars.contains(c));
+                    let next_is_zw = chars.get(i + 1).is_some_and(|c| zero_width_chars.contains(c));
                     if prev_was_zw || next_is_zw { hidden_chars.push(*ch); }
                     prev_was_zw = false;
                 }

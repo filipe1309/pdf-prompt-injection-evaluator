@@ -45,23 +45,17 @@ impl VectorDetector for TextOutsideBoundsDetector {
             for op in &content.operations {
                 match op.operator.as_str() {
                     "BT" => { x = 0.0; y = 0.0; }
-                    "Td" | "TD" => {
-                        if op.operands.len() >= 2 {
-                            x += op.operands[0].as_float().unwrap_or(0.0);
-                            y += op.operands[1].as_float().unwrap_or(0.0);
-                        }
+                    "Td" | "TD" if op.operands.len() >= 2 => {
+                        x += op.operands[0].as_float().unwrap_or(0.0);
+                        y += op.operands[1].as_float().unwrap_or(0.0);
                     }
-                    "Tm" => {
-                        if op.operands.len() >= 6 {
-                            x = op.operands[4].as_float().unwrap_or(0.0);
-                            y = op.operands[5].as_float().unwrap_or(0.0);
-                        }
+                    "Tm" if op.operands.len() >= 6 => {
+                        x = op.operands[4].as_float().unwrap_or(0.0);
+                        y = op.operands[5].as_float().unwrap_or(0.0);
                     }
-                    "Tj" | "TJ" | "'" | "\"" => {
-                        if x < -10.0 || x > page_width + 10.0 || y < -10.0 || y > page_height + 10.0 {
-                            has_text_outside_bounds = true;
-                            break 'outer;
-                        }
+                    "Tj" | "TJ" | "'" | "\"" if x < -10.0 || x > page_width + 10.0 || y < -10.0 || y > page_height + 10.0 => {
+                        has_text_outside_bounds = true;
+                        break 'outer;
                     }
                     _ => {}
                 }

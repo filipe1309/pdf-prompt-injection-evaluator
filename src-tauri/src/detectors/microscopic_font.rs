@@ -23,16 +23,12 @@ impl VectorDetector for MicroscopicFontDetector {
 
             for op in &content.operations {
                 match op.operator.as_str() {
-                    "Tf" => {
-                        if op.operands.len() >= 2 {
-                            font_size = op.operands[1].as_float().unwrap_or(12.0);
-                        }
+                    "Tf" if op.operands.len() >= 2 => {
+                        font_size = op.operands[1].as_float().unwrap_or(12.0);
                     }
-                    "Tj" | "TJ" | "'" | "\"" => {
-                        if font_size <= 3.0 && font_size > 0.0 {
-                            has_microscopic_font = true;
-                            break 'outer;
-                        }
+                    "Tj" | "TJ" | "'" | "\"" if font_size <= 3.0 && font_size > 0.0 => {
+                        has_microscopic_font = true;
+                        break 'outer;
                     }
                     _ => {}
                 }
