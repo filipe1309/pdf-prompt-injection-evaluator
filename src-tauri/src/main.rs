@@ -2,7 +2,7 @@
 
 use pdf_prompt_injection_evaluator_lib::{
     config,
-    heuristic_detector,
+    detectors,
     llm_analyzer,
     models::{AnalysisResult, AppConfig, LlmClassification, Severity, Verdict},
     pdf_parser,
@@ -18,11 +18,11 @@ async fn analyze_pdf(path: String) -> Result<AnalysisResult, String> {
     let file_bytes = std::fs::read(&file_path).map_err(|e| format!("Failed to read file: {}", e))?;
     let hash = format!("{:x}", Sha256::digest(&file_bytes));
 
-    let content = pdf_parser::parse_pdf(&file_path).map_err(|e| format!("PDF parse error: {}", e))?;
+    let parsed = pdf_parser::load_pdf(&file_path).map_err(|e| format!("PDF parse error: {}", e))?;
 
-    let extracted_text: String = content.pages.values().cloned().collect::<Vec<_>>().join("\n");
+    let extracted_text: String = parsed.pages.values().cloned().collect::<Vec<_>>().join("\n");
 
-    let findings = heuristic_detector::detect(&content);
+    let findings = detectors::run_all(&parsed.doc, &parsed.raw_bytes, &parsed.pages);
 
     let verdict = if findings
         .iter()

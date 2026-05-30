@@ -68,6 +68,27 @@ pub fn parse_pdf(path: &Path) -> Result<PdfContent, PdfParseError> {
     })
 }
 
+pub struct ParsedPdf {
+    pub doc: lopdf::Document,
+    pub raw_bytes: Vec<u8>,
+    pub pages: std::collections::HashMap<u32, String>,
+}
+
+pub fn load_pdf(path: &Path) -> Result<ParsedPdf, PdfParseError> {
+    let raw_bytes = std::fs::read(path)
+        .map_err(|e| PdfParseError::OpenError(e.to_string()))?;
+    let doc = lopdf::Document::load(path)
+        .map_err(|e| PdfParseError::OpenError(e.to_string()))?;
+
+    let mut pages = std::collections::HashMap::new();
+    for page_num in doc.get_pages().keys().copied() {
+        let text = doc.extract_text(&[page_num]).unwrap_or_default();
+        pages.insert(page_num, text);
+    }
+
+    Ok(ParsedPdf { doc, raw_bytes, pages })
+}
+
 /// Detects incremental updates by counting %%EOF markers in raw bytes.
 /// A valid single-revision PDF has exactly one %%EOF. Multiple markers indicate
 /// incremental updates were appended (potentially after a digital signature).
