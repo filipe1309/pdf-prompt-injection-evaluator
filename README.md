@@ -1,6 +1,9 @@
 # PDF Prompt Injection Evaluator
 
-![PDF Prompt Injection Evaluator Icon](docs/images/pdf-icon.png)
+<p align="center">
+  <img src="docs/images/pdf-icon.png" alt="PDF Prompt Injection Evaluator Icon" width="150">
+</p>
+
 
 A desktop application that helps lawyers verify PDF files for prompt injection attacks.
 
