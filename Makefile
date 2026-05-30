@@ -46,7 +46,7 @@ release: ## Bump version, commit, tag, and push a release (usage: make release V
 	@sed -i.bak 's/"version": "[^"]*"/"version": "$(VERSION_CLEAN)"/' package.json && rm package.json.bak
 	git add src-tauri/tauri.conf.json package.json
 	git commit -m "chore: bump version to $(VERSION_CLEAN)"
-	git tag $(VERSION)
+	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin main $(VERSION)
 	@echo "Version bumped to $(VERSION_CLEAN), tag $(VERSION) pushed — check GitHub Actions for progress."
 
