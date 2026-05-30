@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "pdf-prompt-injection-evaluator",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "identifier": "com.pdfpromptinjectionevaluator.app",
   "build": {
     "frontendDist": "../src"
