@@ -1,8 +1,11 @@
 {
   "name": "pdf-prompt-injection-evaluator",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
-    "tauri": "cargo tauri"
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
   }
 }
