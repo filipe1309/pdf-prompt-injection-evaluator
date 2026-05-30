@@ -4,7 +4,7 @@ A desktop application that helps lawyers verify PDF files for prompt injection a
 
 ## Features
 
-- **Heuristic Detection (Layer 1)**: Offline scanning for zero-width characters, hidden text, Unicode tricks, embedded JavaScript, suspicious annotations, and instruction patterns (pt-BR + EN)
+- **Heuristic Detection (Layer 1)**: Offline scanning via a pluggable detector pipeline — zero-width characters, hidden text, Unicode tricks, embedded JavaScript, suspicious annotations, form fields, OCG layers, and instruction patterns (pt-BR + EN)
 - **LLM Semantic Analysis (Layer 2)**: Optional deep analysis using OpenAI, Gemini, Anthropic, or custom LLM endpoints
 - **Multi-file Queue**: Process multiple PDFs at once with progress tracking and batch deep analysis
 - **PDF Viewer**: In-app PDF rendering with visual highlighting of suspicious regions
@@ -78,12 +78,14 @@ Click the ⚙️ button to configure:
 ## How It Works
 
 ### Layer 1: Heuristic Detection (offline)
-Scans the PDF structure for:
+Scans the PDF structure using a pluggable detector pipeline (`src-tauri/src/detectors/`). Each attack vector lives in its own file implementing the `VectorDetector` trait. Detectors cover:
 - Zero-width characters hiding text
 - Bidirectional Unicode overrides
 - Instruction manipulation patterns (pt-BR and EN)
 - Embedded JavaScript
-- Suspicious metadata and annotations
+- Suspicious metadata, annotations, and form fields
+- White/invisible/microscopic text in content streams
+- Hidden OCG layers, ActualText attributes, incremental updates
 
 ### Layer 2: LLM Semantic Analysis (optional)
 Sends the full extracted text plus heuristic findings to your configured LLM for semantic classification of injection attempts. Works on individual files or in batch mode across the entire queue.
