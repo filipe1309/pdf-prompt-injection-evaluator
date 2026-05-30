@@ -132,8 +132,6 @@ One PDF per attack vector, based on the [15 documented techniques](https://www.m
 4. The heuristic detector should flag vectors 01–05, 11–12, 15–16 automatically
 5. For advanced vectors (06–10, 13–14), use the LLM deep analysis for better detection
 
-> **Reference:** These vectors are documented in [this article](https://www.migalhas.com.br/depeso/455924/prompt-injection-em-documentos-judiciais-conceito-vetores-e-riscos) about the first judicial conviction for prompt injection in Brazil (Parauapebas/PA, May 2026).
-
 ## License
 
 MIT
