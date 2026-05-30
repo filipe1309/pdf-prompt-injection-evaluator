@@ -39,6 +39,12 @@ release-win: ## Build Windows installer (.exe NSIS)
 	@cp src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/*-setup.exe dist/ 2>/dev/null || true
 	@echo "Windows installer copied to dist/"
 
+tag-release: ## Tag and push a release (usage: make tag-release VERSION=v1.2.3)
+	@test -n "$(VERSION)" || (echo "ERROR: VERSION is required. Usage: make tag-release VERSION=v1.2.3" && exit 1)
+	git tag $(VERSION)
+	git push origin $(VERSION)
+	@echo "Release tag $(VERSION) pushed — check GitHub Actions for build progress."
+
 release-win-portable: ## Build Windows portable .exe (no installer)
 	$(CARGO) tauri build --target x86_64-pc-windows-gnu
 	@mkdir -p dist
