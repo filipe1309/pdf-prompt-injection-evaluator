@@ -31,6 +31,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install frontend dependencies
+        run: npm install
+
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -57,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "PDF Injection Checker v__VERSION__"
+          releaseName: "PDF Injection Checker ${{ github.ref_name }}"
           releaseBody: |
             See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
           releaseDraft: true
