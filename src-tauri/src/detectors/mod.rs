@@ -246,3 +246,48 @@ pub fn combined_instruction_patterns() -> &'static Regex {
             .expect("valid combined instruction regex")
     })
 }
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+    use crate::pdf_parser;
+    use std::path::Path;
+
+    #[test]
+    fn test_detects_sample_01_texto_branco() {
+        let path = Path::new("../samples/vectors/01_texto_branco.pdf");
+        if !path.exists() { return; }
+        let parsed = pdf_parser::load_pdf(path).unwrap();
+        let findings = run_all(&parsed.doc, &parsed.raw_bytes, &parsed.pages);
+        assert!(!findings.is_empty(), "Should detect injection in sample 01");
+    }
+
+    #[test]
+    fn test_detects_sample_10_ocg_off() {
+        let path = Path::new("../samples/vectors/10_camada_ocg_off.pdf");
+        if !path.exists() { return; }
+        let parsed = pdf_parser::load_pdf(path).unwrap();
+        let findings = run_all(&parsed.doc, &parsed.raw_bytes, &parsed.pages);
+        assert!(findings.iter().any(|f| f.detection_type == crate::models::DetectionType::HiddenOcgLayer),
+            "Should detect HiddenOcgLayer");
+    }
+
+    #[test]
+    fn test_detects_sample_16_instrucao_visivel() {
+        let path = Path::new("../samples/vectors/16_instrucao_visivel.pdf");
+        if !path.exists() { return; }
+        let parsed = pdf_parser::load_pdf(path).unwrap();
+        let findings = run_all(&parsed.doc, &parsed.raw_bytes, &parsed.pages);
+        assert!(findings.iter().any(|f| f.detection_type == crate::models::DetectionType::InstructionPattern),
+            "Should detect InstructionPattern in visible text");
+    }
+
+    #[test]
+    fn test_run_all_does_not_panic_on_empty_input() {
+        let pages = HashMap::from([(1u32, "Contrato de prestacao de servicos entre as partes para fins legais.".to_string())]);
+        let doc = lopdf::Document::new();
+        let findings = run_all(&doc, b"", &pages);
+        assert!(findings.iter().all(|f| f.severity != crate::models::Severity::Critical),
+            "Clean document should not produce Critical findings");
+    }
+}
